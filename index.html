@@ -246,9 +246,9 @@ function renderLogin(serviceToken){
     '<div class="logo">B</div>'+
     '<h1>'+(serviceToken?"Service handoff":"Welcome back.")+'</h1>'+
     '<p>'+(serviceToken?"Sign in to action this delivery handoff.":"Blackburn Delivery Experience")+'</p>'+
-    '<form id="loginForm">'+
+    '<form id="loginForm" novalidate>'+
       '<div class="field"><label>Work email</label><input id="email" type="email" autocomplete="username" required placeholder="name@autopact.com.au"></div>'+
-      '<div class="field"><label>4 digit PIN</label><input id="pin" class="pin" type="password" inputmode="numeric" maxlength="4" pattern="[0-9]{4}" required placeholder="••••"></div>'+
+      '<div class="field"><label>4 digit PIN</label><input id="pin" class="pin" type="password" inputmode="numeric" maxlength="4" required placeholder="••••"></div>'+
       '<button class="btn primary" type="submit">CONTINUE →</button>'+
       '<div id="loginError" class="error"></div>'+
     '</form>'+
@@ -259,10 +259,11 @@ function renderLogin(serviceToken){
     const email=document.getElementById("email").value.trim().toLowerCase();
     const pin=document.getElementById("pin").value.trim();
     const err=document.getElementById("loginError");
+    err.textContent="";
     if(!/^\d{4}$/.test(pin)){err.textContent="Enter a 4 digit PIN.";return;}
 
     const res=await sb.auth.signInWithPassword({email:email,password:pinPassword(pin)});
-    if(res.error){err.textContent="Email or PIN not recognised.";return;}
+    if(res.error){console.error("Login failed:",res.error);err.textContent="Email or PIN not recognised.";return;}
 
     currentUser=res.data.user;
     localStorage.setItem(TRUST_KEY,String(Date.now()));
