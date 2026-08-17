@@ -230,6 +230,7 @@ async function init(){
     return;
   }
 
+  await syncFromTim("");
   await loadDeliveries();
   renderShell();
   startRealtime();
@@ -272,6 +273,8 @@ function renderLogin(serviceToken){
 
     if(profile.must_change_pin){renderChangePin(serviceToken);return;}
     if(serviceToken){await renderServiceRoute(serviceToken);return;}
+    await syncFromTim("");
+    await syncFromTim("");
     await loadDeliveries();
     renderShell();
     startRealtime();
@@ -322,6 +325,44 @@ async function logout(){
   window.location.href=window.location.pathname;
 }
 window.logout=logout;
+
+async function syncFromTim(q){
+  try{
+    const opts={body:q?{q:q}:{}};
+    const res=await sb.functions.invoke("delivery-sync",opts);
+    if(res.error){
+      console.error("Delivery sync failed:",res.error);
+      toast("Live delivery feed unavailable");
+      return false;
+    }
+    if(res.data && res.data.unresolved_salespeople && res.data.unresolved_salespeople.length){
+      console.warn("Unmatched salesperson names:",res.data.unresolved_salespeople);
+    }
+    return true;
+  }catch(err){
+    console.error("Delivery sync exception:",err);
+    toast("Live delivery feed unavailable");
+    return false;
+  }
+}
+
+async function searchAllDeliveries(){
+  const input=document.getElementById("searchInput");
+  const q=(input?input.value:searchText||"").trim();
+  if(!q){
+    searchText="";
+    await syncFromTim("");
+    await loadDeliveries();
+    renderHome();
+    return;
+  }
+
+  searchText=q;
+  toast("Searching all deliveries…");
+  await syncFromTim(q);
+  await loadDeliveries();
+  renderHome();
+}
 
 async function loadDeliveries(){
   const res=await sb.from("deliveries").select("*").order("scheduled_delivery_at",{ascending:true});
@@ -412,7 +453,7 @@ function renderHome(){
 
   main.innerHTML='<div class="hero"><div><div class="eyebrow">Today</div><h1>Deliveries</h1></div><div class="small">'+esc(melbourneDateKey())+' • Melbourne</div></div>'+
     '<div class="tiles">'+tileHtml+'</div>'+
-    '<div class="searchbar"><input id="searchInput" value="'+esc(searchText)+'" placeholder="Search customer, deal #, mobile, rego, stock #..."><button class="btn" id="clearSearch">Clear</button></div>'+
+    '<div class="searchbar"><input id="searchInput" value="'+esc(searchText)+'" placeholder="Search customer, deal #, email, stock #..."><button class="btn primary" id="searchAll">SEARCH ALL →</button><button class="btn" id="clearSearch">Clear</button></div>'+
     '<div class="customer-grid">'+customerHtml+'</div>';
 
   document.querySelectorAll("[data-brand]").forEach(function(el){
@@ -426,12 +467,21 @@ function renderHome(){
   document.querySelectorAll(".open-delivery").forEach(function(el){
     el.addEventListener("click",function(){openDelivery(el.getAttribute("data-id"));});
   });
-  document.getElementById("clearSearch").addEventListener("click",function(){searchText="";renderHome();});
-  document.getElementById("searchInput").addEventListener("input",function(e){
-    searchText=e.target.value.trim();
+  document.getElementById("searchAll").addEventListener("click",searchAllDeliveries);
+  document.getElementById("clearSearch").addEventListener("click",async function(){
+    searchText="";
+    await syncFromTim("");
+    await loadDeliveries();
     renderHome();
-    const n=document.getElementById("searchInput");
-    if(n){n.focus();n.setSelectionRange(n.value.length,n.value.length);}
+  });
+  document.getElementById("searchInput").addEventListener("input",function(e){
+    searchText=e.target.value;
+  });
+  document.getElementById("searchInput").addEventListener("keydown",function(e){
+    if(e.key==="Enter"){
+      e.preventDefault();
+      searchAllDeliveries();
+    }
   });
 }
 
