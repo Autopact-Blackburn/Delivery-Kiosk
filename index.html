@@ -236,9 +236,10 @@ async function init(){
 }
 
 async function loadProfile(){
-  const res=await sb.from("profiles").select("*").eq("id",currentUser.id).single();
+  const res=await sb.rpc("get_my_profile");
   if(res.error)throw new Error("Profile error: "+res.error.message);
-  profile=res.data;
+  if(!res.data || !res.data.length)throw new Error("Profile error: no profile returned for this login.");
+  profile=res.data[0];
 }
 
 function renderLogin(serviceToken){
