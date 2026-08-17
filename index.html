@@ -1,0 +1,700 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+<meta name="theme-color" content="#f7f8fb" />
+<title>Blackburn Delivery Experience</title>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="https://cdn.jsdelivr.net/npm/qrcodejs@1.0.0/qrcode.min.js"></script>
+
+<style>
+:root{
+  --bg:#f7f8fb;
+  --card:#ffffff;
+  --ink:#17191f;
+  --muted:#7a8190;
+  --line:#e7e9ef;
+  --soft:#f1f3f7;
+  --purple:#7c5cff;
+  --pink:#ef5ca8;
+  --orange:#ff9047;
+  --green:#1cad6c;
+  --amber:#eda723;
+  --red:#e25555;
+  --shadow:0 20px 60px rgba(28,31,38,.08);
+  --radius:26px;
+}
+*{box-sizing:border-box}
+html,body{margin:0;min-height:100%;font-family:Inter,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;background:var(--bg);color:var(--ink)}
+button,input,select,textarea{font:inherit}
+button{cursor:pointer}
+.hidden{display:none!important}
+#app{min-height:100vh}
+.topbar{position:sticky;top:0;z-index:20;background:rgba(247,248,251,.92);backdrop-filter:blur(18px);border-bottom:1px solid var(--line)}
+.topbar-inner{max-width:1240px;margin:0 auto;padding:16px 20px;display:flex;align-items:center;justify-content:space-between;gap:14px}
+.brand{display:flex;align-items:center;gap:12px;font-weight:900}
+.logo{width:42px;height:42px;border-radius:15px;display:grid;place-items:center;color:#fff;font-weight:900;background:linear-gradient(135deg,var(--purple),var(--pink) 58%,var(--orange));box-shadow:0 12px 28px rgba(124,92,255,.25)}
+.brand small{display:block;color:var(--muted);font-weight:700;margin-top:2px}
+.userbar{display:flex;align-items:center;gap:8px;flex-wrap:wrap;justify-content:flex-end}
+.chip{padding:8px 11px;border:1px solid var(--line);border-radius:999px;background:#fff;color:var(--muted);font-size:12px;font-weight:750}
+main{max-width:1240px;margin:0 auto;padding:26px 20px 54px}
+.hero{display:flex;align-items:flex-end;justify-content:space-between;gap:18px;margin:8px 0 22px}
+.eyebrow{font-size:11px;letter-spacing:.12em;text-transform:uppercase;color:var(--muted);font-weight:900}
+h1{margin:8px 0 0;font-size:clamp(34px,5vw,58px);letter-spacing:-.055em;line-height:.98}
+h2{margin:0;font-size:28px;letter-spacing:-.035em}
+h3{margin:0;font-size:19px;letter-spacing:-.02em}
+p{color:var(--muted);line-height:1.5}
+.btn{border:0;border-radius:16px;padding:13px 17px;font-weight:900;background:#fff;color:var(--ink);box-shadow:inset 0 0 0 1px var(--line);transition:.18s ease}
+.btn:hover{transform:translateY(-1px)}
+.btn.primary{position:relative;overflow:hidden;color:#fff;box-shadow:0 14px 32px rgba(124,92,255,.22);background:linear-gradient(110deg,var(--purple),var(--pink) 62%,var(--orange))}
+.btn.primary:after{content:"";position:absolute;top:-100%;left:-45%;width:25%;height:300%;transform:rotate(22deg);background:linear-gradient(90deg,transparent,rgba(255,255,255,.34),transparent);animation:shine 3.2s infinite}
+@keyframes shine{0%,50%{left:-45%}78%,100%{left:130%}}
+.btn.green{background:var(--green);color:#fff;box-shadow:none}
+.btn.dark{background:#1d2026;color:#fff;box-shadow:none}
+.btn:disabled{opacity:.5;cursor:default;transform:none}
+.tiles{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:14px}
+.tile{border:1px solid var(--line);background:#fff;border-radius:24px;padding:22px;text-align:left;box-shadow:var(--shadow);transition:.2s}
+.tile:hover{transform:translateY(-2px)}
+.tile.active{border-color:#aa9cff;box-shadow:0 0 0 2px rgba(124,92,255,.10),var(--shadow)}
+.tile-title{font-size:16px;font-weight:900}
+.tile-count{font-size:34px;font-weight:950;margin-top:18px}
+.tile-meta{font-size:12px;color:var(--muted);margin-top:4px}
+.searchbar{display:flex;gap:10px;margin:22px 0}
+.searchbar input{flex:1;border:1px solid var(--line);border-radius:18px;background:#fff;padding:16px 18px;outline:none;font-size:15px}
+.searchbar input:focus{border-color:#aa9cff;box-shadow:0 0 0 4px rgba(124,92,255,.08)}
+.customer-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:14px}
+.customer-card{border:1px solid var(--line);background:#fff;border-radius:24px;padding:19px;display:flex;justify-content:space-between;align-items:center;gap:16px;box-shadow:var(--shadow)}
+.customer-name{font-size:19px;font-weight:950}
+.customer-meta{font-size:13px;color:var(--muted);margin-top:5px}
+.status{display:inline-flex;padding:7px 10px;border-radius:999px;font-size:11px;font-weight:900;text-transform:uppercase;letter-spacing:.03em;background:#f0f1f4;color:#737b89}
+.status.in_progress,.status.waiting_service{background:#fff4dc;color:#9c6500}
+.status.completed{background:#e9f9f1;color:#11804a}
+.empty{padding:40px;text-align:center;border:1px dashed #ccd1da;border-radius:22px;color:var(--muted);background:rgba(255,255,255,.55)}
+.delivery-head{display:flex;justify-content:space-between;gap:18px;align-items:flex-start;margin:20px 0}
+.delivery-vehicle{font-size:16px;color:var(--muted);margin-top:8px}
+.step-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:15px}
+.step-card{min-height:195px;border:1px solid var(--line);background:#fff;border-radius:24px;padding:22px;box-shadow:var(--shadow);display:flex;flex-direction:column}
+.step-card.complete{border-color:#bce8d2;background:linear-gradient(180deg,#fff,#f4fbf7)}
+.step-card.waiting{border-color:#efd28d;background:#fffaf0}
+.step-num{width:44px;height:44px;border-radius:14px;display:grid;place-items:center;background:#f0efff;color:var(--purple);font-weight:950;margin-bottom:17px}
+.step-card p{font-size:13px;margin:8px 0 16px}
+.step-card .btn{width:100%;margin-top:auto}
+.progress-box{margin-top:16px;background:#1d2026;color:#fff;border-radius:22px;padding:19px 20px;display:flex;justify-content:space-between;align-items:center;gap:16px}
+.progress-box small{color:#b9bec8}
+.progress-box strong{display:block;font-size:23px;margin-top:3px}
+.panel{border:1px solid var(--line);background:#fff;border-radius:24px;padding:22px;box-shadow:var(--shadow)}
+.table-wrap{overflow:auto}
+table{width:100%;border-collapse:collapse}
+th,td{padding:13px 11px;border-bottom:1px solid var(--line);font-size:13px;text-align:left;white-space:nowrap}
+th{font-size:10px;letter-spacing:.08em;text-transform:uppercase;color:var(--muted)}
+.login-wrap{min-height:100vh;display:grid;place-items:center;padding:24px;background:radial-gradient(circle at 15% 15%,rgba(124,92,255,.13),transparent 30%),radial-gradient(circle at 88% 85%,rgba(255,144,71,.12),transparent 28%),#f8f9fb}
+.login-card{width:min(460px,100%);border:1px solid var(--line);background:#fff;border-radius:30px;padding:34px;box-shadow:0 26px 80px rgba(26,28,33,.10)}
+.login-card h1{font-size:42px;margin-top:18px}
+.field{display:flex;flex-direction:column;gap:7px;margin-top:15px}
+label{font-size:11px;text-transform:uppercase;letter-spacing:.07em;color:var(--muted);font-weight:900}
+input,select,textarea{width:100%;border:1px solid var(--line);border-radius:16px;background:#fff;padding:15px 16px;outline:none}
+input:focus,select:focus,textarea:focus{border-color:#aa9cff;box-shadow:0 0 0 4px rgba(124,92,255,.08)}
+.pin{font-size:28px;letter-spacing:.35em;text-align:center;font-weight:900}
+.login-card .btn{width:100%;padding:16px;margin-top:20px}
+.error{margin-top:12px;color:var(--red);font-size:13px}
+.modal-bg{position:fixed;inset:0;z-index:60;background:rgba(24,26,31,.38);backdrop-filter:blur(8px);display:grid;place-items:center;padding:20px}
+.modal{width:min(560px,100%);background:#fff;border-radius:28px;padding:28px;box-shadow:0 30px 100px rgba(0,0,0,.22)}
+.qr{width:max-content;margin:18px auto;padding:16px;background:#fff;border:1px solid var(--line);border-radius:18px}
+.modal-actions{display:flex;gap:10px;margin-top:18px}
+.modal-actions .btn{flex:1}
+.service-shell{min-height:100vh;display:grid;place-items:center;padding:22px;background:var(--bg)}
+.service-card{width:min(610px,100%);border:1px solid var(--line);background:#fff;border-radius:30px;padding:30px;box-shadow:var(--shadow)}
+.service-summary{padding:18px;background:var(--soft);border-radius:20px;margin:18px 0}
+.service-actions{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+.service-actions .btn{min-height:105px}
+.toast{position:fixed;left:50%;bottom:24px;z-index:100;transform:translate(-50%,18px);opacity:0;pointer-events:none;background:#1d2026;color:#fff;padding:13px 17px;border-radius:14px;transition:.2s;font-size:13px}
+.toast.show{opacity:1;transform:translate(-50%,0)}
+@media(max-width:850px){.tiles{grid-template-columns:repeat(2,1fr)}.customer-grid,.step-grid{grid-template-columns:1fr}}
+@media(max-width:560px){main{padding:18px 14px 40px}.topbar-inner{padding:13px 14px}.brand-copy{display:none}.hero,.delivery-head,.progress-box{align-items:flex-start;flex-direction:column}.tiles{grid-template-columns:1fr 1fr}.tile{padding:17px}.customer-card{align-items:flex-start;flex-direction:column}.login-card{padding:26px 20px}.service-actions{grid-template-columns:1fr}}
+</style>
+</head>
+<body>
+<div id="app"></div>
+<div id="toast" class="toast"></div>
+
+<script>
+(function(){
+"use strict";
+
+const SUPABASE_URL="https://hzxapabymbyekarboaig.supabase.co";
+const SUPABASE_ANON_KEY="eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmF5bWJ5ZWthcmJvYWlnIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODY5MjAxNzcsImV4cCI6MjEwMjQ5NjE3N30.G2VCprwzEF0sDvubzUlzH7tbDIShwV2sMrGS4JRydaY";
+const PIN_PREFIX="BlackburnDelivery#";
+const TRUST_KEY="blackburn_delivery_trusted_at";
+const THIRTY_DAYS=30*24*60*60*1000;
+
+const app=document.getElementById("app");
+const toastEl=document.getElementById("toast");
+
+let sb=null;
+let currentUser=null;
+let profile=null;
+let deliveries=[];
+let selectedBrand="ALL";
+let searchText="";
+let activeDelivery=null;
+let activeSession=null;
+let steps=[];
+let handoff=null;
+let realtimeChannel=null;
+
+function esc(v){
+  return String(v==null?"":v).replace(/[&<>"']/g,function(m){
+    return {"&":"&amp;","<":"&lt;",">":"&gt;","\"":"&quot;","'":"&#039;"}[m];
+  });
+}
+function pinPassword(pin){return PIN_PREFIX+pin;}
+function toast(msg){
+  toastEl.textContent=msg;
+  toastEl.classList.add("show");
+  setTimeout(function(){toastEl.classList.remove("show");},2200);
+}
+function roleLabel(role){
+  return {admin:"Admin",manager:"Manager",sales:"Sales Consultant",service:"Service Team"}[role]||role||"";
+}
+function isManagement(){return profile && (profile.role==="admin"||profile.role==="manager");}
+function melbourneDateKey(value){
+  const d=value?new Date(value):new Date();
+  const parts=new Intl.DateTimeFormat("en-CA",{timeZone:"Australia/Melbourne",year:"numeric",month:"2-digit",day:"2-digit"}).formatToParts(d);
+  const o={};parts.forEach(function(p){o[p.type]=p.value;});
+  return o.year+"-"+o.month+"-"+o.day;
+}
+function isToday(value){return !!value && melbourneDateKey(value)===melbourneDateKey();}
+function fmtDateTime(value){
+  if(!value)return"Not scheduled";
+  return new Intl.DateTimeFormat("en-AU",{timeZone:"Australia/Melbourne",day:"2-digit",month:"short",hour:"numeric",minute:"2-digit"}).format(new Date(value));
+}
+function fmtTime(value){
+  if(!value)return"";
+  return new Intl.DateTimeFormat("en-AU",{timeZone:"Australia/Melbourne",hour:"numeric",minute:"2-digit"}).format(new Date(value));
+}
+function brandBucket(d){
+  const brand=String(d.brand||"").toUpperCase();
+  const dep=String(d.department||"").toUpperCase();
+  if(dep.indexOf("USED")>-1||brand==="USED")return"USED";
+  if(brand.indexOf("KIA")>-1)return"KIA";
+  if(brand.indexOf("GWM")>-1||brand.indexOf("HAVAL")>-1)return"GWM";
+  if(brand.indexOf("NISSAN")>-1)return"NISSAN";
+  return brand||"OTHER";
+}
+function statusText(s){return String(s||"scheduled").replace(/_/g," ");}
+
+function fatal(message){
+  app.innerHTML='<div class="login-wrap"><div class="login-card"><div class="logo">B</div><h1 style="font-size:34px">Unable to start.</h1><p>'+esc(message)+'</p></div></div>';
+}
+
+async function init(){
+  if(!window.supabase || !window.supabase.createClient){
+    fatal("Supabase library did not load. Check internet access and refresh.");
+    return;
+  }
+  sb=window.supabase.createClient(SUPABASE_URL,SUPABASE_ANON_KEY,{
+    auth:{persistSession:true,autoRefreshToken:true,detectSessionInUrl:false}
+  });
+
+  const params=new URLSearchParams(window.location.search);
+  const serviceToken=params.get("service");
+
+  const sessionResult=await sb.auth.getSession();
+  const session=sessionResult.data && sessionResult.data.session ? sessionResult.data.session : null;
+
+  if(!session){
+    renderLogin(serviceToken);
+    return;
+  }
+
+  const trustedAt=parseInt(localStorage.getItem(TRUST_KEY)||"0",10);
+  if(trustedAt && (Date.now()-trustedAt)>THIRTY_DAYS){
+    await sb.auth.signOut();
+    localStorage.removeItem(TRUST_KEY);
+    renderLogin(serviceToken);
+    return;
+  }
+
+  currentUser=session.user;
+  await loadProfile();
+
+  if(profile && profile.must_change_pin){
+    renderChangePin(serviceToken);
+    return;
+  }
+
+  if(serviceToken){
+    await renderServiceRoute(serviceToken);
+    return;
+  }
+
+  await loadDeliveries();
+  renderShell();
+  startRealtime();
+}
+
+async function loadProfile(){
+  const res=await sb.from("profiles").select("*").eq("id",currentUser.id).single();
+  if(res.error)throw new Error("Profile error: "+res.error.message);
+  profile=res.data;
+}
+
+function renderLogin(serviceToken){
+  app.innerHTML='<div class="login-wrap"><div class="login-card">'+
+    '<div class="logo">B</div>'+
+    '<h1>'+(serviceToken?"Service handoff":"Welcome back.")+'</h1>'+
+    '<p>'+(serviceToken?"Sign in to action this delivery handoff.":"Blackburn Delivery Experience")+'</p>'+
+    '<form id="loginForm">'+
+      '<div class="field"><label>Work email</label><input id="email" type="email" autocomplete="username" required placeholder="name@autopact.com.au"></div>'+
+      '<div class="field"><label>4 digit PIN</label><input id="pin" class="pin" type="password" inputmode="numeric" maxlength="4" pattern="[0-9]{4}" required placeholder="••••"></div>'+
+      '<button class="btn primary" type="submit">CONTINUE →</button>'+
+      '<div id="loginError" class="error"></div>'+
+    '</form>'+
+  '</div></div>';
+
+  document.getElementById("loginForm").addEventListener("submit",async function(e){
+    e.preventDefault();
+    const email=document.getElementById("email").value.trim().toLowerCase();
+    const pin=document.getElementById("pin").value.trim();
+    const err=document.getElementById("loginError");
+    if(!/^\d{4}$/.test(pin)){err.textContent="Enter a 4 digit PIN.";return;}
+
+    const res=await sb.auth.signInWithPassword({email:email,password:pinPassword(pin)});
+    if(res.error){err.textContent="Email or PIN not recognised.";return;}
+
+    currentUser=res.data.user;
+    localStorage.setItem(TRUST_KEY,String(Date.now()));
+    try{await loadProfile();}catch(ex){err.textContent=ex.message;return;}
+
+    if(profile.must_change_pin){renderChangePin(serviceToken);return;}
+    if(serviceToken){await renderServiceRoute(serviceToken);return;}
+    await loadDeliveries();
+    renderShell();
+    startRealtime();
+  });
+}
+
+function renderChangePin(serviceToken){
+  app.innerHTML='<div class="login-wrap"><div class="login-card">'+
+    '<div class="logo">B</div>'+
+    '<h1>Choose your PIN.</h1>'+
+    '<p>Replace the temporary 1234 PIN before continuing.</p>'+
+    '<form id="pinForm">'+
+      '<div class="field"><label>New 4 digit PIN</label><input id="newPin" class="pin" type="password" inputmode="numeric" maxlength="4" required placeholder="••••"></div>'+
+      '<div class="field"><label>Confirm PIN</label><input id="confirmPin" class="pin" type="password" inputmode="numeric" maxlength="4" required placeholder="••••"></div>'+
+      '<button class="btn primary" type="submit">SAVE PIN →</button>'+
+      '<div id="pinError" class="error"></div>'+
+    '</form>'+
+  '</div></div>';
+
+  document.getElementById("pinForm").addEventListener("submit",async function(e){
+    e.preventDefault();
+    const a=document.getElementById("newPin").value.trim();
+    const b=document.getElementById("confirmPin").value.trim();
+    const err=document.getElementById("pinError");
+    if(!/^\d{4}$/.test(a)){err.textContent="PIN must be exactly 4 digits.";return;}
+    if(a==="1234"){err.textContent="Choose a PIN other than 1234.";return;}
+    if(a!==b){err.textContent="PINs do not match.";return;}
+
+    const up=await sb.auth.updateUser({password:pinPassword(a)});
+    if(up.error){err.textContent=up.error.message;return;}
+
+    const rpc=await sb.rpc("complete_pin_change");
+    if(rpc.error){err.textContent="PIN changed, but setup could not finish: "+rpc.error.message;return;}
+
+    await loadProfile();
+    localStorage.setItem(TRUST_KEY,String(Date.now()));
+
+    if(serviceToken){await renderServiceRoute(serviceToken);return;}
+    await loadDeliveries();
+    renderShell();
+    startRealtime();
+  });
+}
+
+async function logout(){
+  if(sb)await sb.auth.signOut();
+  localStorage.removeItem(TRUST_KEY);
+  window.location.href=window.location.pathname;
+}
+window.logout=logout;
+
+async function loadDeliveries(){
+  const res=await sb.from("deliveries").select("*").order("scheduled_delivery_at",{ascending:true});
+  if(res.error){throw new Error("Could not load deliveries: "+res.error.message);}
+  deliveries=res.data||[];
+}
+
+function renderShell(){
+  if(profile.role==="service"){renderServiceLanding();return;}
+
+  app.innerHTML='<div class="topbar"><div class="topbar-inner">'+
+    '<div class="brand"><div class="logo">B</div><div class="brand-copy">Blackburn<small>Delivery Experience</small></div></div>'+
+    '<div class="userbar">'+
+      '<span class="chip">'+esc(profile.full_name)+'</span>'+
+      '<span class="chip">'+esc(roleLabel(profile.role))+'</span>'+
+      '<button class="btn" id="reportBtn">'+(isManagement()?"Reports":"My Reports")+'</button>'+
+      '<button class="btn" onclick="logout()">Sign out</button>'+
+    '</div>'+
+  '</div></div><main id="main"></main>';
+
+  document.getElementById("reportBtn").addEventListener("click",function(){renderReports(!isManagement());});
+  renderHome();
+}
+
+function countBrands(){
+  const c={KIA:0,GWM:0,NISSAN:0,USED:0};
+  deliveries.filter(function(d){return isToday(d.scheduled_delivery_at)&&d.status!=="cancelled";}).forEach(function(d){
+    const b=brandBucket(d);
+    if(Object.prototype.hasOwnProperty.call(c,b))c[b]++;
+  });
+  return c;
+}
+
+function filteredDeliveries(){
+  if(searchText){
+    const s=searchText.toLowerCase();
+    return deliveries.filter(function(d){
+      if(d.status==="cancelled")return false;
+      const hay=[
+        d.customer_first_name,d.customer_last_name,
+        (d.customer_first_name||"")+" "+(d.customer_last_name||""),
+        d.deal_number,d.customer_number,d.customer_mobile,d.rego,d.stock_number,d.vin
+      ].join(" ").toLowerCase();
+      return hay.indexOf(s)>-1;
+    });
+  }
+  let rows=deliveries.filter(function(d){return isToday(d.scheduled_delivery_at)&&d.status!=="cancelled";});
+  if(selectedBrand!=="ALL")rows=rows.filter(function(d){return brandBucket(d)===selectedBrand;});
+  return rows;
+}
+
+function renderHome(){
+  const main=document.getElementById("main");
+  if(!main)return;
+  activeDelivery=null;
+  const counts=countBrands();
+  const rows=filteredDeliveries();
+
+  let tileHtml="";
+  ["KIA","GWM","NISSAN","USED"].forEach(function(b){
+    tileHtml+='<button class="tile '+(selectedBrand===b?"active":"")+'" data-brand="'+b+'">'+
+      '<div class="tile-title">'+b+'</div>'+
+      '<div class="tile-count">'+counts[b]+'</div>'+
+      '<div class="tile-meta">scheduled today</div>'+
+    '</button>';
+  });
+
+  let customerHtml="";
+  if(rows.length){
+    rows.forEach(function(d){
+      customerHtml+='<div class="customer-card">'+
+        '<div><div class="customer-name">'+esc(d.customer_first_name)+' '+esc(d.customer_last_name)+'</div>'+
+        '<div class="customer-meta">'+esc(d.vehicle_make||"")+' '+esc(d.vehicle_model||"")+
+          (d.rego?' • '+esc(d.rego):'')+
+          (d.scheduled_delivery_at?' • '+esc(fmtTime(d.scheduled_delivery_at)):'')+
+        '</div>'+
+        (isManagement()?'<div class="customer-meta">'+esc(d.assigned_salesperson_name||"Unassigned")+'</div>':'')+
+        '</div>'+
+        '<div style="display:flex;align-items:center;gap:9px;flex-wrap:wrap">'+
+          '<span class="status '+esc(d.status)+'">'+esc(statusText(d.status))+'</span>'+
+          '<button class="btn primary open-delivery" data-id="'+esc(d.id)+'">'+(d.status==="completed"?"VIEW":"OPEN")+' →</button>'+
+        '</div>'+
+      '</div>';
+    });
+  }else{
+    customerHtml='<div class="empty" style="grid-column:1/-1">'+(searchText?"No matching deliveries found.":"No deliveries in this view.")+'</div>';
+  }
+
+  main.innerHTML='<div class="hero"><div><div class="eyebrow">Today</div><h1>Deliveries</h1></div><div class="small">'+esc(melbourneDateKey())+' • Melbourne</div></div>'+
+    '<div class="tiles">'+tileHtml+'</div>'+
+    '<div class="searchbar"><input id="searchInput" value="'+esc(searchText)+'" placeholder="Search customer, deal #, mobile, rego, stock #..."><button class="btn" id="clearSearch">Clear</button></div>'+
+    '<div class="customer-grid">'+customerHtml+'</div>';
+
+  document.querySelectorAll("[data-brand]").forEach(function(el){
+    el.addEventListener("click",function(){
+      const b=el.getAttribute("data-brand");
+      selectedBrand=(selectedBrand===b?"ALL":b);
+      searchText="";
+      renderHome();
+    });
+  });
+  document.querySelectorAll(".open-delivery").forEach(function(el){
+    el.addEventListener("click",function(){openDelivery(el.getAttribute("data-id"));});
+  });
+  document.getElementById("clearSearch").addEventListener("click",function(){searchText="";renderHome();});
+  document.getElementById("searchInput").addEventListener("input",function(e){
+    searchText=e.target.value.trim();
+    renderHome();
+    const n=document.getElementById("searchInput");
+    if(n){n.focus();n.setSelectionRange(n.value.length,n.value.length);}
+  });
+}
+
+async function openDelivery(id){
+  activeDelivery=deliveries.find(function(d){return d.id===id;});
+  if(!activeDelivery)return;
+
+  let sessionRes=await sb.from("delivery_sessions").select("*").eq("delivery_id",id).maybeSingle();
+  if(sessionRes.error){toast(sessionRes.error.message);return;}
+  let sess=sessionRes.data;
+
+  if(!sess && activeDelivery.status!=="completed"){
+    const start=await sb.rpc("start_delivery",{p_delivery_id:id});
+    if(start.error){toast(start.error.message);return;}
+    const newSession=await sb.from("delivery_sessions").select("*").eq("id",start.data).single();
+    if(newSession.error){toast(newSession.error.message);return;}
+    sess=newSession.data;
+  }
+
+  activeSession=sess;
+  await refreshActive(false);
+  renderDelivery();
+}
+
+async function refreshActive(doRender){
+  if(!activeDelivery)return;
+  const dRes=await sb.from("deliveries").select("*").eq("id",activeDelivery.id).single();
+  if(!dRes.error)activeDelivery=dRes.data;
+
+  const sRes=await sb.from("delivery_sessions").select("*").eq("delivery_id",activeDelivery.id).maybeSingle();
+  if(!sRes.error)activeSession=sRes.data;
+
+  if(activeSession){
+    const stRes=await sb.from("delivery_steps").select("*").eq("session_id",activeSession.id).order("step_number");
+    steps=stRes.data||[];
+    const hRes=await sb.from("service_handoffs").select("*").eq("session_id",activeSession.id).order("created_at",{ascending:false}).limit(1);
+    handoff=(hRes.data&&hRes.data.length)?hRes.data[0]:null;
+  }else{
+    steps=[];handoff=null;
+  }
+  if(doRender!==false)renderDelivery();
+}
+
+function stepDescription(n){
+  return {
+    1:"Spare keys • books • warranty • service intervals",
+    2:"Features • controls • connectivity • vehicle demonstration",
+    3:"Service introduction • first inspection",
+    4:"Payment • documents • insurance • final checks"
+  }[n]||"";
+}
+
+function renderDelivery(){
+  const main=document.getElementById("main");
+  if(!main||!activeDelivery)return;
+  const completed=steps.filter(function(s){return s.status==="completed";}).length;
+
+  let stepHtml="";
+  steps.forEach(function(s){
+    let action="";
+    if(s.status==="completed"){
+      action='<button class="btn green" disabled>COMPLETE ✓</button>';
+    }else if(s.step_number===3){
+      action=s.status==="waiting"
+        ? '<button class="btn service-qr">WAITING FOR SERVICE • VIEW QR</button>'
+        : '<button class="btn primary start-service">START SERVICE INTRO →</button>';
+    }else{
+      action='<button class="btn primary complete-step" data-step="'+s.step_number+'">MARK COMPLETE →</button>';
+    }
+
+    stepHtml+='<div class="step-card '+(s.status==="completed"?"complete":s.status==="waiting"?"waiting":"")+'">'+
+      '<div class="step-num">'+(s.status==="completed"?"✓":s.step_number)+'</div>'+
+      '<h3>'+esc(s.step_title)+'</h3>'+
+      '<p>'+esc(stepDescription(s.step_number))+'</p>'+
+      (s.completed_at?'<div class="small" style="margin-bottom:12px">'+esc(fmtDateTime(s.completed_at))+'</div>':'')+
+      (s.step_number===3&&handoff&&handoff.first_inspection_booked?'<div class="small" style="margin-bottom:12px">Inspection: '+esc(fmtDateTime(handoff.first_inspection_at))+'</div>':'')+
+      action+
+    '</div>';
+  });
+
+  main.innerHTML='<button class="btn" id="backHome">← All deliveries</button>'+
+    '<div class="delivery-head">'+
+      '<div><div class="eyebrow">'+esc(brandBucket(activeDelivery))+' • '+esc(activeDelivery.deal_number||"")+'</div>'+
+      '<h1>'+esc(activeDelivery.customer_first_name)+' '+esc(activeDelivery.customer_last_name)+'</h1>'+
+      '<div class="delivery-vehicle">'+esc(activeDelivery.vehicle_make||"")+' '+esc(activeDelivery.vehicle_model||"")+(activeDelivery.rego?' • '+esc(activeDelivery.rego):'')+'</div></div>'+
+      '<span class="status '+esc(activeDelivery.status)+'">'+esc(statusText(activeDelivery.status))+'</span>'+
+    '</div>'+
+    '<div class="step-grid">'+stepHtml+'</div>'+
+    '<div class="progress-box"><div><small>Delivery progress</small><strong>'+completed+' / 4 complete</strong></div>'+
+      (completed===4&&activeDelivery.status!=="completed"?'<button class="btn green" id="finishDelivery">COMPLETE DELIVERY ✓</button>':'')+
+      (activeDelivery.status==="completed"?'<strong style="color:#75e5a9">DELIVERY COMPLETE ✓</strong>':'')+
+    '</div>';
+
+  document.getElementById("backHome").addEventListener("click",async function(){await loadDeliveries();renderHome();});
+  document.querySelectorAll(".complete-step").forEach(function(el){
+    el.addEventListener("click",function(){completeStep(parseInt(el.getAttribute("data-step"),10));});
+  });
+  const ss=document.querySelector(".start-service");
+  if(ss)ss.addEventListener("click",startServiceHandoff);
+  const sq=document.querySelector(".service-qr");
+  if(sq)sq.addEventListener("click",function(){showServiceQR(handoff&&handoff.handoff_token);});
+  const fd=document.getElementById("finishDelivery");
+  if(fd)fd.addEventListener("click",finishDelivery);
+}
+
+async function completeStep(n){
+  const res=await sb.rpc("complete_delivery_step",{p_session_id:activeSession.id,p_step_number:n,p_notes:null});
+  if(res.error){toast(res.error.message);return;}
+  toast("Step "+n+" complete");
+  await refreshActive(true);
+}
+
+async function startServiceHandoff(){
+  const res=await sb.rpc("create_service_handoff",{p_session_id:activeSession.id});
+  if(res.error){toast(res.error.message);return;}
+  await refreshActive(false);
+  showServiceQR(res.data);
+  renderDelivery();
+}
+
+function showServiceQR(token){
+  if(!token){toast("No active service handoff found.");return;}
+  const url=window.location.origin+window.location.pathname+"?service="+encodeURIComponent(token);
+  const bg=document.createElement("div");
+  bg.className="modal-bg";
+  bg.id="qrModal";
+  bg.innerHTML='<div class="modal"><div class="eyebrow">Step 3</div><h2>Meet Service</h2><p>Ask a Service team member to scan this code.</p><div id="qr" class="qr"></div><div class="small" style="text-align:center">Service will confirm the introduction or first inspection booking.</div><div class="modal-actions"><button class="btn" id="closeQr">Return to delivery</button></div></div>';
+  document.body.appendChild(bg);
+
+  if(window.QRCode){
+    new QRCode(document.getElementById("qr"),{text:url,width:220,height:220,correctLevel:QRCode.CorrectLevel.M});
+  }else{
+    document.getElementById("qr").innerHTML='<div class="error">QR library did not load.</div>';
+  }
+  document.getElementById("closeQr").addEventListener("click",function(){bg.remove();});
+}
+
+async function finishDelivery(){
+  const res=await sb.rpc("complete_delivery",{p_session_id:activeSession.id});
+  if(res.error){toast(res.error.message);return;}
+  toast("Delivery completed");
+  await loadDeliveries();
+  await refreshActive(true);
+}
+
+async function renderServiceRoute(token){
+  if(!profile || !["service","admin","manager"].includes(profile.role)){
+    app.innerHTML='<div class="service-shell"><div class="service-card"><div class="logo">B</div><h1 style="font-size:36px;margin-top:18px">Service access required.</h1><p>This handoff can only be actioned by Service, Manager or Admin.</p><button class="btn" onclick="logout()">Sign out</button></div></div>';
+    return;
+  }
+
+  const res=await sb.rpc("get_service_handoff",{p_token:token});
+  if(res.error || !res.data || !res.data.length){
+    app.innerHTML='<div class="service-shell"><div class="service-card"><div class="logo">B</div><h1 style="font-size:36px;margin-top:18px">Handoff unavailable.</h1><p>'+esc(res.error?res.error.message:"This handoff may already have been completed.")+'</p><button class="btn" id="serviceDone">Done</button></div></div>';
+    document.getElementById("serviceDone").addEventListener("click",function(){window.location.href=window.location.pathname;});
+    return;
+  }
+
+  const h=res.data[0];
+  app.innerHTML='<div class="service-shell"><div class="service-card">'+
+    '<div class="logo">B</div><div class="eyebrow" style="margin-top:18px">Service introduction</div>'+
+    '<h1 style="font-size:42px">'+esc(h.customer_first_name)+' '+esc(h.customer_last_name)+'</h1>'+
+    '<div class="service-summary"><strong>'+esc(h.vehicle||"Vehicle")+'</strong><div class="customer-meta">'+(h.rego?'Rego '+esc(h.rego)+' • ':'')+'Sales: '+esc(h.salesperson||"")+'</div></div>'+
+    '<div class="service-actions">'+
+      '<button class="btn primary" id="bookInspection">BOOK FIRST INSPECTION →</button>'+
+      '<button class="btn" id="introOnly">INTRO COMPLETE<br><span class="small">Booking to follow</span></button>'+
+    '</div>'+
+    '<div class="small" style="margin-top:18px">Actioned as '+esc(profile.full_name)+' • '+esc(roleLabel(profile.role))+'</div>'+
+    '<div id="bookingArea"></div>'+
+  '</div></div>';
+
+  document.getElementById("introOnly").addEventListener("click",function(){completeService(token,"intro_complete");});
+  document.getElementById("bookInspection").addEventListener("click",function(){showBookingForm(token);});
+}
+
+function showBookingForm(token){
+  document.getElementById("bookingArea").innerHTML='<div class="panel" style="margin-top:16px"><h2>First inspection</h2><div class="field"><label>Date & time</label><input id="bookingAt" type="datetime-local"></div><div class="field"><label>Notes — optional</label><textarea id="serviceNotes"></textarea></div><button class="btn green" id="confirmBooking" style="width:100%;margin-top:14px">CONFIRM BOOKING ✓</button></div>';
+  document.getElementById("confirmBooking").addEventListener("click",function(){completeService(token,"booked");});
+}
+
+async function completeService(token,outcome){
+  let booking=null;
+  let notes=null;
+  if(outcome==="booked"){
+    const raw=document.getElementById("bookingAt").value;
+    if(!raw){toast("Choose a booking date and time.");return;}
+    booking=new Date(raw).toISOString();
+    notes=document.getElementById("serviceNotes").value||null;
+  }
+
+  const res=await sb.rpc("complete_service_handoff",{p_token:token,p_outcome:outcome,p_first_inspection_at:booking,p_notes:notes});
+  if(res.error){toast(res.error.message);return;}
+
+  app.innerHTML='<div class="service-shell"><div class="service-card" style="text-align:center"><div style="font-size:70px">✓</div><h1 style="font-size:42px">Service complete.</h1><p>'+(outcome==="booked"?"First inspection booked and Step 3 completed.":"Service introduction recorded. Booking can follow.")+'</p><div class="small">Recorded to '+esc(profile.full_name)+' • '+esc(fmtDateTime(new Date().toISOString()))+'</div><button class="btn primary" id="doneService" style="margin-top:20px">DONE →</button></div></div>';
+  document.getElementById("doneService").addEventListener("click",function(){window.location.href=window.location.pathname;});
+}
+
+function renderServiceLanding(){
+  app.innerHTML='<div class="service-shell"><div class="service-card"><div class="logo">B</div><h1 style="font-size:42px;margin-top:18px">Service Team</h1><p>Scan a delivery QR code to action a customer handoff.</p><div class="small">Signed in as '+esc(profile.full_name)+'</div><button class="btn" style="margin-top:18px" onclick="logout()">Sign out</button></div></div>';
+}
+
+async function renderReports(ownOnly){
+  const main=document.getElementById("main");
+  if(!main)return;
+
+  let q=sb.from("delivery_report").select("*").order("scheduled_delivery_at",{ascending:false}).limit(250);
+  if(ownOnly)q=q.eq("assigned_salesperson_id",currentUser.id);
+
+  const res=await q;
+  if(res.error){toast(res.error.message);return;}
+  const rows=res.data||[];
+
+  let body="";
+  rows.forEach(function(r){
+    body+='<tr>'+
+      '<td>'+esc(fmtDateTime(r.scheduled_delivery_at))+'</td>'+
+      '<td>'+esc(r.customer_first_name)+' '+esc(r.customer_last_name)+'</td>'+
+      '<td>'+esc(r.brand||"")+'</td>'+
+      '<td>'+esc(r.assigned_salesperson_name||"")+'</td>'+
+      '<td>'+esc(statusText(r.delivery_status))+'</td>'+
+      '<td>'+esc(r.completed_steps||0)+'/4</td>'+
+      '<td>'+esc(r.service_advisor||"")+'</td>'+
+      '<td>'+(r.first_inspection_booked?esc(fmtDateTime(r.first_inspection_at)):"—")+'</td>'+
+      '<td>'+(r.delivery_duration_minutes?Math.round(r.delivery_duration_minutes)+" min":"—")+'</td>'+
+    '</tr>';
+  });
+
+  main.innerHTML='<button class="btn" id="backReport">← Deliveries</button>'+
+    '<div class="hero" style="margin-top:20px"><div><div class="eyebrow">'+(ownOnly?"My performance":"Management")+'</div><h1>Delivery Report</h1></div></div>'+
+    '<div class="tiles" style="margin-bottom:18px">'+
+      '<div class="tile"><div class="tile-title">Deliveries</div><div class="tile-count">'+rows.length+'</div></div>'+
+      '<div class="tile"><div class="tile-title">Completed</div><div class="tile-count">'+rows.filter(function(r){return r.delivery_status==="completed";}).length+'</div></div>'+
+      '<div class="tile"><div class="tile-title">Service intro</div><div class="tile-count">'+rows.filter(function(r){return !!r.service_intro_completed_at;}).length+'</div></div>'+
+      '<div class="tile"><div class="tile-title">Inspection booked</div><div class="tile-count">'+rows.filter(function(r){return !!r.first_inspection_booked;}).length+'</div></div>'+
+    '</div>'+
+    '<div class="panel table-wrap"><table><thead><tr><th>Date</th><th>Customer</th><th>Brand</th><th>Salesperson</th><th>Status</th><th>Steps</th><th>Service Advisor</th><th>Inspection</th><th>Duration</th></tr></thead><tbody>'+body+'</tbody></table></div>';
+
+  document.getElementById("backReport").addEventListener("click",renderHome);
+}
+
+function startRealtime(){
+  if(realtimeChannel)return;
+  realtimeChannel=sb.channel("delivery-live")
+    .on("postgres_changes",{event:"*",schema:"public",table:"delivery_steps"},async function(payload){
+      if(activeSession && payload.new && payload.new.session_id===activeSession.id){
+        await refreshActive(true);
+      }
+    })
+    .on("postgres_changes",{event:"*",schema:"public",table:"service_handoffs"},async function(payload){
+      if(activeSession && payload.new && payload.new.session_id===activeSession.id){
+        const modal=document.getElementById("qrModal");
+        if(modal)modal.remove();
+        toast("Service has completed Step 3");
+        await refreshActive(true);
+      }
+    })
+    .subscribe();
+}
+
+init().catch(function(err){
+  console.error(err);
+  fatal(err && err.message ? err.message : "Unexpected startup error.");
+});
+
+})();
+</script>
+</body>
+</html>
