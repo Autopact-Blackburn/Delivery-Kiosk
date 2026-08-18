@@ -18,8 +18,8 @@
   --line:#e7e9ef;
   --soft:#f1f3f7;
   --purple:#7c5cff;
-  --pink:#ef5ca8;
-  --orange:#ff9047;
+  --charcoal:#202229;
+  --black:#090a0d;
   --green:#1cad6c;
   --amber:#eda723;
   --red:#e25555;
@@ -35,7 +35,7 @@ button{cursor:pointer}
 .topbar{position:sticky;top:0;z-index:20;background:rgba(247,248,251,.92);backdrop-filter:blur(18px);border-bottom:1px solid var(--line)}
 .topbar-inner{max-width:1240px;margin:0 auto;padding:16px 20px;display:flex;align-items:center;justify-content:space-between;gap:14px}
 .brand{display:flex;align-items:center;gap:12px;font-weight:900}
-.logo{width:42px;height:42px;border-radius:15px;display:grid;place-items:center;color:#fff;font-weight:900;background:linear-gradient(135deg,var(--purple),var(--pink) 58%,var(--orange));box-shadow:0 12px 28px rgba(124,92,255,.25)}
+.logo{width:42px;height:42px;border-radius:15px;display:grid;place-items:center;color:#fff;font-weight:900;background:linear-gradient(135deg,var(--purple),#3b2f73 48%,var(--black));background-size:180% 180%;animation:gradientDrift 7s ease infinite;box-shadow:0 12px 28px rgba(124,92,255,.25)}
 .brand small{display:block;color:var(--muted);font-weight:700;margin-top:2px}
 .userbar{display:flex;align-items:center;gap:8px;flex-wrap:wrap;justify-content:flex-end}
 .chip{padding:8px 11px;border:1px solid var(--line);border-radius:999px;background:#fff;color:var(--muted);font-size:12px;font-weight:750}
@@ -48,9 +48,10 @@ h3{margin:0;font-size:19px;letter-spacing:-.02em}
 p{color:var(--muted);line-height:1.5}
 .btn{border:0;border-radius:16px;padding:13px 17px;font-weight:900;background:#fff;color:var(--ink);box-shadow:inset 0 0 0 1px var(--line);transition:.18s ease}
 .btn:hover{transform:translateY(-1px)}
-.btn.primary{position:relative;overflow:hidden;color:#fff;box-shadow:0 14px 32px rgba(124,92,255,.22);background:linear-gradient(110deg,var(--purple),var(--pink) 62%,var(--orange))}
+.btn.primary{position:relative;overflow:hidden;color:#fff;box-shadow:0 14px 32px rgba(124,92,255,.22);background:linear-gradient(110deg,var(--purple),#3f356d 52%,var(--black));background-size:220% 220%;animation:gradientDrift 6s ease infinite}
 .btn.primary:after{content:"";position:absolute;top:-100%;left:-45%;width:25%;height:300%;transform:rotate(22deg);background:linear-gradient(90deg,transparent,rgba(255,255,255,.34),transparent);animation:shine 3.2s infinite}
 @keyframes shine{0%,50%{left:-45%}78%,100%{left:130%}}
+@keyframes gradientDrift{0%{background-position:0% 50%}50%{background-position:100% 50%}100%{background-position:0% 50%}}
 .btn.green{background:var(--green);color:#fff;box-shadow:none}
 .btn.dark{background:#1d2026;color:#fff;box-shadow:none}
 .btn:disabled{opacity:.5;cursor:default;transform:none}
@@ -89,7 +90,7 @@ p{color:var(--muted);line-height:1.5}
 table{width:100%;border-collapse:collapse}
 th,td{padding:13px 11px;border-bottom:1px solid var(--line);font-size:13px;text-align:left;white-space:nowrap}
 th{font-size:10px;letter-spacing:.08em;text-transform:uppercase;color:var(--muted)}
-.login-wrap{min-height:100vh;display:grid;place-items:center;padding:24px;background:radial-gradient(circle at 15% 15%,rgba(124,92,255,.13),transparent 30%),radial-gradient(circle at 88% 85%,rgba(255,144,71,.12),transparent 28%),#f8f9fb}
+.login-wrap{min-height:100vh;display:grid;place-items:center;padding:24px;background:radial-gradient(circle at 15% 15%,rgba(124,92,255,.13),transparent 30%),radial-gradient(circle at 88% 85%,rgba(15,16,20,.10),transparent 28%),#f8f9fb}
 .login-card{width:min(460px,100%);border:1px solid var(--line);background:#fff;border-radius:30px;padding:34px;box-shadow:0 26px 80px rgba(26,28,33,.10)}
 .login-card h1{font-size:42px;margin-top:18px}
 .field{display:flex;flex-direction:column;gap:7px;margin-top:15px}
@@ -113,6 +114,20 @@ input:focus,select:focus,textarea:focus{border-color:#aa9cff;box-shadow:0 0 0 4p
 .toast.show{opacity:1;transform:translate(-50%,0)}
 @media(max-width:850px){.tiles{grid-template-columns:repeat(2,1fr)}.customer-grid,.step-grid{grid-template-columns:1fr}}
 @media(max-width:560px){main{padding:18px 14px 40px}.topbar-inner{padding:13px 14px}.brand-copy{display:none}.hero,.delivery-head,.progress-box{align-items:flex-start;flex-direction:column}.tiles{grid-template-columns:1fr 1fr}.tile{padding:17px}.customer-card{align-items:flex-start;flex-direction:column}.login-card{padding:26px 20px}.service-actions{grid-template-columns:1fr}}
+
+.view-actions{display:flex;gap:10px;align-items:center;flex-wrap:wrap;margin:0 0 18px}
+.view-pill{border:1px solid var(--line);background:#fff;border-radius:999px;padding:11px 14px;font-weight:900;color:var(--ink)}
+.view-pill.active{background:#17191f;color:#fff;border-color:#17191f}
+.attention{display:inline-flex;align-items:center;gap:7px;padding:8px 11px;border-radius:999px;background:#fff4dc;color:#8d5a00;font-size:11px;font-weight:900}
+.next-action{font-size:12px;font-weight:850;margin-top:7px;color:#4e5562}
+.updated-note{font-size:11px;color:var(--muted);opacity:.85;transition:.25s}
+.service-choice{display:grid;grid-template-columns:1fr 1fr;gap:9px;margin-top:auto}
+.queue-list{display:grid;gap:12px;margin-top:18px}
+.queue-card{border:1px solid var(--line);background:#fff;border-radius:22px;padding:18px;box-shadow:var(--shadow)}
+.queue-card.waiting{border-color:#d9c7ff;background:linear-gradient(180deg,#fff,#fbf9ff)}
+.queue-meta{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px 14px;margin:12px 0;color:var(--muted);font-size:12px}
+.queue-actions{display:flex;gap:8px;flex-wrap:wrap}
+@media(max-width:560px){.service-choice{grid-template-columns:1fr}.queue-meta{grid-template-columns:1fr}.view-actions{align-items:stretch}.view-actions .btn,.view-actions .view-pill{flex:1}}
 </style>
 </head>
 <body>
@@ -143,6 +158,9 @@ let activeSession=null;
 let steps=[];
 let handoff=null;
 let realtimeChannel=null;
+let homeMode="today";
+let silentPollTimer=null;
+let lastUpdatedAt=null;
 
 function esc(v){
   return String(v==null?"":v).replace(/[&<>"']/g,function(m){
@@ -184,6 +202,25 @@ function brandBucket(d){
   return brand||"OTHER";
 }
 function statusText(s){return String(s||"scheduled").replace(/_/g," ");}
+function isOutstanding(d){return d.status!=="completed"&&d.status!=="cancelled";}
+function isPast(value){return !!value && new Date(value).getTime()<Date.now() && !isToday(value);}
+function outstandingRows(){
+  return deliveries.filter(isOutstanding).sort(function(a,b){
+    const bucket=function(d){if(isToday(d.scheduled_delivery_at))return 0;if(isPast(d.scheduled_delivery_at))return 1;if(d.scheduled_delivery_at)return 2;return 3;};
+    const ba=bucket(a),bb=bucket(b);if(ba!==bb)return ba-bb;
+    if(!a.scheduled_delivery_at&&!b.scheduled_delivery_at)return String(a.customer_first_name||"").localeCompare(String(b.customer_first_name||""));
+    return new Date(a.scheduled_delivery_at||8640000000000000)-new Date(b.scheduled_delivery_at||8640000000000000);
+  });
+}
+function needsAttention(d){return isOutstanding(d)&&(isPast(d.scheduled_delivery_at)||!d.scheduled_delivery_at||d.status==="waiting_service");}
+function nextActionText(d){
+  if(d.status==="waiting_service")return "Waiting for Service";
+  if(!d.scheduled_delivery_at)return "Not yet booked";
+  if(isToday(d.scheduled_delivery_at))return "Delivery today · "+fmtTime(d.scheduled_delivery_at);
+  if(isPast(d.scheduled_delivery_at))return "Past booked time · needs attention";
+  return "Upcoming · "+fmtDateTime(d.scheduled_delivery_at);
+}
+function updatedLabel(){return lastUpdatedAt?"Updated just now":"Live sync active";}
 
 function fatal(message){
   app.innerHTML='<div class="login-wrap"><div class="login-card"><div class="logo">B</div><h1 style="font-size:34px">Unable to start.</h1><p>'+esc(message)+'</p></div></div>';
@@ -274,7 +311,6 @@ function renderLogin(serviceToken){
     if(profile.must_change_pin){renderChangePin(serviceToken);return;}
     if(serviceToken){await renderServiceRoute(serviceToken);return;}
     await syncFromTim("");
-    await syncFromTim("");
     await loadDeliveries();
     renderShell();
     startRealtime();
@@ -313,6 +349,7 @@ function renderChangePin(serviceToken){
     localStorage.setItem(TRUST_KEY,String(Date.now()));
 
     if(serviceToken){await renderServiceRoute(serviceToken);return;}
+    await syncFromTim("");
     await loadDeliveries();
     renderShell();
     startRealtime();
@@ -326,9 +363,10 @@ async function logout(){
 }
 window.logout=logout;
 
-async function syncFromTim(q){
+async function syncFromTim(q,scope){
   try{
-    const opts={body:q?{q:q}:{}};
+    const body={};if(q)body.q=q;if(scope)body.scope=scope;
+    const opts={body:body};
     const res=await sb.functions.invoke("delivery-sync",opts);
     if(res.error){
       console.error("Delivery sync failed:",res.error);
@@ -338,12 +376,29 @@ async function syncFromTim(q){
     if(res.data && res.data.unresolved_salespeople && res.data.unresolved_salespeople.length){
       console.warn("Unmatched salesperson names:",res.data.unresolved_salespeople);
     }
+    lastUpdatedAt=Date.now();
     return true;
   }catch(err){
     console.error("Delivery sync exception:",err);
     toast("Live delivery feed unavailable");
     return false;
   }
+}
+
+async function showOutstandingDeliveries(){
+  homeMode="outstanding";
+  searchText="";
+  toast(isManagement()?"Loading outstanding deliveries…":"Loading my outstanding deliveries…");
+  await syncFromTim("","outstanding");
+  await loadDeliveries();
+  renderHome();
+}
+
+async function showTodayDeliveries(){
+  homeMode="today";searchText="";selectedBrand="ALL";
+  await syncFromTim("");
+  await loadDeliveries();
+  renderHome();
 }
 
 async function searchAllDeliveries(){
@@ -401,15 +456,11 @@ function filteredDeliveries(){
     const s=searchText.toLowerCase();
     return deliveries.filter(function(d){
       if(d.status==="cancelled")return false;
-      const hay=[
-        d.customer_first_name,d.customer_last_name,
-        (d.customer_first_name||"")+" "+(d.customer_last_name||""),
-        d.deal_number,d.customer_number,d.customer_mobile,d.rego,d.stock_number,d.vin
-      ].join(" ").toLowerCase();
+      const hay=[d.customer_first_name,d.customer_last_name,(d.customer_first_name||"")+" "+(d.customer_last_name||""),d.deal_number,d.customer_number,d.customer_mobile,d.customer_email,d.rego,d.stock_number,d.vin].join(" ").toLowerCase();
       return hay.indexOf(s)>-1;
     });
   }
-  let rows=deliveries.filter(function(d){return isToday(d.scheduled_delivery_at)&&d.status!=="cancelled";});
+  let rows=homeMode==="outstanding"?outstandingRows():deliveries.filter(function(d){return isToday(d.scheduled_delivery_at)&&d.status!=="cancelled";});
   if(selectedBrand!=="ALL")rows=rows.filter(function(d){return brandBucket(d)===selectedBrand;});
   return rows;
 }
@@ -420,69 +471,35 @@ function renderHome(){
   activeDelivery=null;
   const counts=countBrands();
   const rows=filteredDeliveries();
+  const outstanding=outstandingRows();
+  const attentionCount=outstanding.filter(needsAttention).length;
 
   let tileHtml="";
   ["KIA","GWM","NISSAN","USED"].forEach(function(b){
-    tileHtml+='<button class="tile '+(selectedBrand===b?"active":"")+'" data-brand="'+b+'">'+
-      '<div class="tile-title">'+b+'</div>'+
-      '<div class="tile-count">'+counts[b]+'</div>'+
-      '<div class="tile-meta">scheduled today</div>'+
-    '</button>';
+    const count=homeMode==="outstanding"?outstanding.filter(function(d){return brandBucket(d)===b;}).length:counts[b];
+    tileHtml+='<button class="tile '+(selectedBrand===b?"active":"")+'" data-brand="'+b+'"><div class="tile-title">'+b+'</div><div class="tile-count">'+count+'</div><div class="tile-meta">'+(homeMode==="outstanding"?"outstanding":"scheduled today")+'</div></button>';
   });
 
   let customerHtml="";
   if(rows.length){
     rows.forEach(function(d){
-      customerHtml+='<div class="customer-card">'+
-        '<div><div class="customer-name">'+esc(d.customer_first_name)+' '+esc(d.customer_last_name)+'</div>'+
-        '<div class="customer-meta">'+esc(d.vehicle_make||"")+' '+esc(d.vehicle_model||"")+
-          (d.rego?' • '+esc(d.rego):'')+
-          (d.scheduled_delivery_at?' • '+esc(fmtTime(d.scheduled_delivery_at)):'')+
-        '</div>'+
-        (isManagement()?'<div class="customer-meta">'+esc(d.assigned_salesperson_name||"Unassigned")+'</div>':'')+
-        '</div>'+
-        '<div style="display:flex;align-items:center;gap:9px;flex-wrap:wrap">'+
-          '<span class="status '+esc(d.status)+'">'+esc(statusText(d.status))+'</span>'+
-          '<button class="btn primary open-delivery" data-id="'+esc(d.id)+'">'+(d.status==="completed"?"VIEW":"OPEN")+' →</button>'+
-        '</div>'+
-      '</div>';
+      customerHtml+='<div class="customer-card"><div><div class="customer-name">'+esc(d.customer_first_name)+' '+esc(d.customer_last_name)+'</div><div class="customer-meta">'+esc(d.vehicle_make||"")+' '+esc(d.vehicle_model||"")+(d.rego?' • Rego '+esc(d.rego):'')+(d.stock_number?' • Stock '+esc(d.stock_number):'')+'</div><div class="next-action">'+esc(nextActionText(d))+'</div>'+(isManagement()?'<div class="customer-meta">'+esc(d.assigned_salesperson_name||"Unassigned")+'</div>':'')+'</div><div style="display:flex;align-items:center;gap:9px;flex-wrap:wrap">'+(needsAttention(d)?'<span class="attention">● Needs attention</span>':'')+'<span class="status '+esc(d.status)+'">'+esc(statusText(d.status))+'</span><button class="btn primary open-delivery" data-id="'+esc(d.id)+'">'+(d.status==="completed"?"VIEW":"OPEN")+' →</button></div></div>';
     });
-  }else{
-    customerHtml='<div class="empty" style="grid-column:1/-1">'+(searchText?"No matching deliveries found.":"No deliveries in this view.")+'</div>';
-  }
+  }else customerHtml='<div class="empty" style="grid-column:1/-1">'+(searchText?"No matching deliveries found.":homeMode==="outstanding"?"No outstanding deliveries in this view.":"No deliveries in this view.")+'</div>';
 
-  main.innerHTML='<div class="hero"><div><div class="eyebrow">Today</div><h1>Deliveries</h1></div><div class="small">'+esc(melbourneDateKey())+' • Melbourne</div></div>'+
-    '<div class="tiles">'+tileHtml+'</div>'+
-    '<div class="searchbar"><input id="searchInput" value="'+esc(searchText)+'" placeholder="Search customer, deal #, email, stock #..."><button class="btn primary" id="searchAll">SEARCH ALL →</button><button class="btn" id="clearSearch">Clear</button></div>'+
-    '<div class="customer-grid">'+customerHtml+'</div>';
+  const modeTitle=homeMode==="outstanding"?(isManagement()?"All Outstanding Deliveries":"My Outstanding Deliveries"):"Deliveries";
+  main.innerHTML='<div class="hero"><div><div class="eyebrow">'+(homeMode==="outstanding"?"Workload":"Today")+'</div><h1>'+modeTitle+'</h1></div><div><div class="small">'+esc(melbourneDateKey())+' • Melbourne</div><div class="updated-note" id="updatedNote">'+updatedLabel()+'</div></div></div>'+
+    '<div class="view-actions"><button class="view-pill '+(homeMode==="today"?"active":"")+'" id="todayView">TODAY</button><button class="view-pill '+(homeMode==="outstanding"?"active":"")+'" id="outstandingView">'+(isManagement()?"ALL DELIVERIES":"ALL MY DELIVERIES")+' · '+outstanding.length+'</button>'+(attentionCount?'<span class="attention">Needs Attention · '+attentionCount+'</span>':'')+'</div>'+
+    '<div class="tiles">'+tileHtml+'</div><div class="searchbar"><input id="searchInput" value="'+esc(searchText)+'" placeholder="Search customer, deal #, email, stock #..."><button class="btn primary" id="searchAll">SEARCH ALL →</button><button class="btn" id="clearSearch">Clear</button></div><div class="customer-grid">'+customerHtml+'</div>';
 
-  document.querySelectorAll("[data-brand]").forEach(function(el){
-    el.addEventListener("click",function(){
-      const b=el.getAttribute("data-brand");
-      selectedBrand=(selectedBrand===b?"ALL":b);
-      searchText="";
-      renderHome();
-    });
-  });
-  document.querySelectorAll(".open-delivery").forEach(function(el){
-    el.addEventListener("click",function(){openDelivery(el.getAttribute("data-id"));});
-  });
+  document.getElementById("todayView").addEventListener("click",showTodayDeliveries);
+  document.getElementById("outstandingView").addEventListener("click",showOutstandingDeliveries);
+  document.querySelectorAll("[data-brand]").forEach(function(el){el.addEventListener("click",function(){const b=el.getAttribute("data-brand");selectedBrand=(selectedBrand===b?"ALL":b);searchText="";renderHome();});});
+  document.querySelectorAll(".open-delivery").forEach(function(el){el.addEventListener("click",function(){openDelivery(el.getAttribute("data-id"));});});
   document.getElementById("searchAll").addEventListener("click",searchAllDeliveries);
-  document.getElementById("clearSearch").addEventListener("click",async function(){
-    searchText="";
-    await syncFromTim("");
-    await loadDeliveries();
-    renderHome();
-  });
-  document.getElementById("searchInput").addEventListener("input",function(e){
-    searchText=e.target.value;
-  });
-  document.getElementById("searchInput").addEventListener("keydown",function(e){
-    if(e.key==="Enter"){
-      e.preventDefault();
-      searchAllDeliveries();
-    }
-  });
+  document.getElementById("clearSearch").addEventListener("click",async function(){searchText="";await (homeMode==="outstanding"?syncFromTim("","outstanding"):syncFromTim(""));await loadDeliveries();renderHome();});
+  document.getElementById("searchInput").addEventListener("input",function(e){searchText=e.target.value;});
+  document.getElementById("searchInput").addEventListener("keydown",function(e){if(e.key==="Enter"){e.preventDefault();searchAllDeliveries();}});
 }
 
 async function openDelivery(id){
@@ -543,11 +560,13 @@ function renderDelivery(){
   steps.forEach(function(s){
     let action="";
     if(s.status==="completed"){
-      action='<button class="btn green" disabled>COMPLETE ✓</button>';
+      action=s.step_number===3?'<button class="btn green" disabled>SERVICE COMPLETE ✓</button>':'<button class="btn green undo-step" data-step="'+s.step_number+'">COMPLETE ✓ · UNDO</button>';
     }else if(s.step_number===3){
-      action=s.status==="waiting"
-        ? '<button class="btn service-qr">WAITING FOR SERVICE • VIEW QR</button>'
-        : '<button class="btn primary start-service">START SERVICE INTRO →</button>';
+      if(s.status==="waiting"){
+        action=handoff?'<button class="btn service-qr">WAITING FOR SERVICE • VIEW QR</button>':'<button class="btn" disabled>WAITING FOR SERVICE</button>';
+      }else{
+        action='<div class="service-choice"><button class="btn primary start-service">IN-PERSON INTRO →</button><button class="btn dark push-service">PUSH TO SERVICE →</button></div>';
+      }
     }else{
       action='<button class="btn primary complete-step" data-step="'+s.step_number+'">MARK COMPLETE →</button>';
     }
@@ -566,7 +585,7 @@ function renderDelivery(){
     '<div class="delivery-head">'+
       '<div><div class="eyebrow">'+esc(brandBucket(activeDelivery))+' • '+esc(activeDelivery.deal_number||"")+'</div>'+
       '<h1>'+esc(activeDelivery.customer_first_name)+' '+esc(activeDelivery.customer_last_name)+'</h1>'+
-      '<div class="delivery-vehicle">'+esc(activeDelivery.vehicle_make||"")+' '+esc(activeDelivery.vehicle_model||"")+(activeDelivery.rego?' • '+esc(activeDelivery.rego):'')+'</div></div>'+
+      '<div class="delivery-vehicle">'+esc(activeDelivery.vehicle_make||"")+' '+esc(activeDelivery.vehicle_model||"")+(activeDelivery.rego?' • Rego '+esc(activeDelivery.rego):'')+(activeDelivery.stock_number?' • Stock '+esc(activeDelivery.stock_number):'')+'</div></div>'+
       '<span class="status '+esc(activeDelivery.status)+'">'+esc(statusText(activeDelivery.status))+'</span>'+
     '</div>'+
     '<div class="step-grid">'+stepHtml+'</div>'+
@@ -576,11 +595,10 @@ function renderDelivery(){
     '</div>';
 
   document.getElementById("backHome").addEventListener("click",async function(){await loadDeliveries();renderHome();});
-  document.querySelectorAll(".complete-step").forEach(function(el){
-    el.addEventListener("click",function(){completeStep(parseInt(el.getAttribute("data-step"),10));});
-  });
-  const ss=document.querySelector(".start-service");
-  if(ss)ss.addEventListener("click",startServiceHandoff);
+  document.querySelectorAll(".complete-step").forEach(function(el){el.addEventListener("click",function(){completeStep(parseInt(el.getAttribute("data-step"),10));});});
+  document.querySelectorAll(".undo-step").forEach(function(el){el.addEventListener("click",function(){undoStep(parseInt(el.getAttribute("data-step"),10));});});
+  const ss=document.querySelector(".start-service");if(ss)ss.addEventListener("click",startServiceHandoff);
+  const ps=document.querySelector(".push-service");if(ps)ps.addEventListener("click",pushToService);
   const sq=document.querySelector(".service-qr");
   if(sq)sq.addEventListener("click",function(){showServiceQR(handoff&&handoff.handoff_token);});
   const fd=document.getElementById("finishDelivery");
@@ -591,6 +609,22 @@ async function completeStep(n){
   const res=await sb.rpc("complete_delivery_step",{p_session_id:activeSession.id,p_step_number:n,p_notes:null});
   if(res.error){toast(res.error.message);return;}
   toast("Step "+n+" complete");
+  await refreshActive(true);
+}
+
+async function undoStep(n){
+  if(![1,2,4].includes(n))return;
+  if(!window.confirm("Mark Step "+n+" as not completed?"))return;
+  const res=await sb.rpc("reset_delivery_step",{p_session_id:activeSession.id,p_step_number:n});
+  if(res.error){toast(res.error.message);return;}
+  toast("Step "+n+" returned to pending");
+  await refreshActive(true);
+}
+
+async function pushToService(){
+  const res=await sb.rpc("push_delivery_to_service",{p_session_id:activeSession.id});
+  if(res.error){toast(res.error.message);return;}
+  toast("Pushed to Service queue");
   await refreshActive(true);
 }
 
@@ -620,6 +654,7 @@ function showServiceQR(token){
 }
 
 async function finishDelivery(){
+  if(!window.confirm("Confirm the vehicle has been handed over to the customer?"))return;
   const res=await sb.rpc("complete_delivery",{p_session_id:activeSession.id});
   if(res.error){toast(res.error.message);return;}
   toast("Delivery completed");
@@ -644,7 +679,7 @@ async function renderServiceRoute(token){
   app.innerHTML='<div class="service-shell"><div class="service-card">'+
     '<div class="logo">B</div><div class="eyebrow" style="margin-top:18px">Service introduction</div>'+
     '<h1 style="font-size:42px">'+esc(h.customer_first_name)+' '+esc(h.customer_last_name)+'</h1>'+
-    '<div class="service-summary"><strong>'+esc(h.vehicle||"Vehicle")+'</strong><div class="customer-meta">'+(h.rego?'Rego '+esc(h.rego)+' • ':'')+'Sales: '+esc(h.salesperson||"")+'</div></div>'+
+    '<div class="service-summary"><strong>'+esc(h.vehicle||"Vehicle")+'</strong><div class="customer-meta">'+(h.rego?'Rego '+esc(h.rego)+' • ':'')+(h.stock_number?'Stock '+esc(h.stock_number)+' • ':'')+'Sales: '+esc(h.salesperson||"")+'</div></div>'+
     '<div class="service-actions">'+
       '<button class="btn primary" id="bookInspection">BOOK FIRST INSPECTION →</button>'+
       '<button class="btn" id="introOnly">INTRO COMPLETE<br><span class="small">Booking to follow</span></button>'+
@@ -679,8 +714,33 @@ async function completeService(token,outcome){
   document.getElementById("doneService").addEventListener("click",function(){window.location.href=window.location.pathname;});
 }
 
-function renderServiceLanding(){
-  app.innerHTML='<div class="service-shell"><div class="service-card"><div class="logo">B</div><h1 style="font-size:42px;margin-top:18px">Service Team</h1><p>Scan a delivery QR code to action a customer handoff.</p><div class="small">Signed in as '+esc(profile.full_name)+'</div><button class="btn" style="margin-top:18px" onclick="logout()">Sign out</button></div></div>';
+async function renderServiceLanding(){
+  const q=await sb.from("service_push_queue").select("*").eq("status","waiting").order("pushed_at",{ascending:true});
+  const rows=q.error?[]:(q.data||[]);
+  let cards="";
+  rows.forEach(function(r){
+    const age=Math.max(0,Math.round((Date.now()-new Date(r.pushed_at).getTime())/60000));
+    cards+='<div class="queue-card waiting"><div style="display:flex;justify-content:space-between;gap:10px"><div><div class="eyebrow">Waiting '+age+' min</div><h3 style="margin-top:5px">'+esc(r.customer_name)+'</h3></div><span class="status waiting_service">PUSHED</span></div><div class="queue-meta"><div><strong>Vehicle</strong><br>'+esc(r.vehicle||"—")+'</div><div><strong>Salesperson</strong><br>'+esc(r.salesperson_name||"—")+'</div><div><strong>Rego</strong><br>'+esc(r.rego||"—")+'</div><div><strong>Stock #</strong><br>'+esc(r.stock_number||"—")+'</div><div><strong>Delivery</strong><br>'+esc(fmtDateTime(r.scheduled_delivery_at))+'</div><div><strong>Contact</strong><br>'+esc(r.customer_mobile||r.customer_email||"—")+'</div></div><div class="queue-actions"><button class="btn primary queue-book" data-id="'+esc(r.id)+'">BOOK FIRST INSPECTION →</button><button class="btn queue-virtual" data-id="'+esc(r.id)+'">VIRTUAL INTRO COMPLETE</button><button class="btn queue-follow" data-id="'+esc(r.id)+'">BOOKING TO FOLLOW</button></div></div>';
+  });
+  app.innerHTML='<div class="topbar"><div class="topbar-inner"><div class="brand"><div class="logo">B</div><div class="brand-copy">Blackburn<small>Service Queue</small></div></div><div class="userbar"><span class="chip">'+esc(profile.full_name)+'</span><span class="chip">Service Team</span><button class="btn" onclick="logout()">Sign out</button></div></div></div><main><div class="hero"><div><div class="eyebrow">Live handoffs</div><h1>Service Queue</h1></div><div class="attention">Waiting · '+rows.length+'</div></div><div class="panel"><p style="margin-top:0">Customers pushed from Sales appear here automatically. Oldest waiting request is shown first.</p></div><div class="queue-list">'+(cards||'<div class="empty">No customers waiting for Service.</div>')+'</div></main>';
+  document.querySelectorAll(".queue-virtual").forEach(function(el){el.addEventListener("click",function(){completeServicePush(el.dataset.id,"virtual_intro",null,null);});});
+  document.querySelectorAll(".queue-follow").forEach(function(el){el.addEventListener("click",function(){completeServicePush(el.dataset.id,"booking_to_follow",null,null);});});
+  document.querySelectorAll(".queue-book").forEach(function(el){el.addEventListener("click",function(){showQueueBooking(el.dataset.id);});});
+}
+
+function showQueueBooking(id){
+  const bg=document.createElement("div");bg.className="modal-bg";bg.id="queueBookingModal";
+  bg.innerHTML='<div class="modal"><div class="eyebrow">Service queue</div><h2>Book first inspection</h2><div class="field"><label>Date & time</label><input id="queueBookingAt" type="datetime-local"></div><div class="field"><label>Notes — optional</label><textarea id="queueNotes"></textarea></div><div class="modal-actions"><button class="btn" id="cancelQueueBooking">Cancel</button><button class="btn primary" id="saveQueueBooking">CONFIRM BOOKING →</button></div></div>';
+  document.body.appendChild(bg);
+  document.getElementById("cancelQueueBooking").onclick=function(){bg.remove();};
+  document.getElementById("saveQueueBooking").onclick=function(){const raw=document.getElementById("queueBookingAt").value;if(!raw){toast("Choose a booking date and time.");return;}completeServicePush(id,"booked",new Date(raw).toISOString(),document.getElementById("queueNotes").value||null);bg.remove();};
+}
+
+async function completeServicePush(id,outcome,booking,notes){
+  const res=await sb.rpc("complete_service_push",{p_queue_id:id,p_outcome:outcome,p_first_inspection_at:booking,p_notes:notes});
+  if(res.error){toast(res.error.message);return;}
+  toast(outcome==="booked"?"Inspection booked":"Service action recorded");
+  await renderServiceLanding();
 }
 
 async function renderReports(ownOnly){
@@ -689,36 +749,30 @@ async function renderReports(ownOnly){
 
   let q=sb.from("delivery_report").select("*").order("scheduled_delivery_at",{ascending:false}).limit(250);
   if(ownOnly)q=q.eq("assigned_salesperson_id",currentUser.id);
-
   const res=await q;
   if(res.error){toast(res.error.message);return;}
   const rows=res.data||[];
 
+  let sq=sb.from("service_push_queue").select("*").order("pushed_at",{ascending:false}).limit(250);
+  if(ownOnly)sq=sq.eq("salesperson_id",currentUser.id);
+  const sres=await sq;
+  const pushRows=sres.error?[]:(sres.data||[]);
+
   let body="";
   rows.forEach(function(r){
-    body+='<tr>'+
-      '<td>'+esc(fmtDateTime(r.scheduled_delivery_at))+'</td>'+
-      '<td>'+esc(r.customer_first_name)+' '+esc(r.customer_last_name)+'</td>'+
-      '<td>'+esc(r.brand||"")+'</td>'+
-      '<td>'+esc(r.assigned_salesperson_name||"")+'</td>'+
-      '<td>'+esc(statusText(r.delivery_status))+'</td>'+
-      '<td>'+esc(r.completed_steps||0)+'/4</td>'+
-      '<td>'+esc(r.service_advisor||"")+'</td>'+
-      '<td>'+(r.first_inspection_booked?esc(fmtDateTime(r.first_inspection_at)):"—")+'</td>'+
-      '<td>'+(r.delivery_duration_minutes?Math.round(r.delivery_duration_minutes)+" min":"—")+'</td>'+
-    '</tr>';
+    body+='<tr><td>'+esc(fmtDateTime(r.scheduled_delivery_at))+'</td><td>'+esc(r.customer_first_name)+' '+esc(r.customer_last_name)+'</td><td>'+esc(r.brand||"")+'</td><td>'+esc(r.assigned_salesperson_name||"")+'</td><td>'+esc(statusText(r.delivery_status))+'</td><td>'+esc(r.completed_steps||0)+'/4</td><td>'+esc(r.service_advisor||"")+'</td><td>'+(r.first_inspection_booked?esc(fmtDateTime(r.first_inspection_at)):"—")+'</td><td>'+(r.delivery_duration_minutes?Math.round(r.delivery_duration_minutes)+" min":"—")+'</td></tr>';
   });
 
-  main.innerHTML='<button class="btn" id="backReport">← Deliveries</button>'+
-    '<div class="hero" style="margin-top:20px"><div><div class="eyebrow">'+(ownOnly?"My performance":"Management")+'</div><h1>Delivery Report</h1></div></div>'+
-    '<div class="tiles" style="margin-bottom:18px">'+
-      '<div class="tile"><div class="tile-title">Deliveries</div><div class="tile-count">'+rows.length+'</div></div>'+
-      '<div class="tile"><div class="tile-title">Completed</div><div class="tile-count">'+rows.filter(function(r){return r.delivery_status==="completed";}).length+'</div></div>'+
-      '<div class="tile"><div class="tile-title">Service intro</div><div class="tile-count">'+rows.filter(function(r){return !!r.service_intro_completed_at;}).length+'</div></div>'+
-      '<div class="tile"><div class="tile-title">Inspection booked</div><div class="tile-count">'+rows.filter(function(r){return !!r.first_inspection_booked;}).length+'</div></div>'+
-    '</div>'+
-    '<div class="panel table-wrap"><table><thead><tr><th>Date</th><th>Customer</th><th>Brand</th><th>Salesperson</th><th>Status</th><th>Steps</th><th>Service Advisor</th><th>Inspection</th><th>Duration</th></tr></thead><tbody>'+body+'</tbody></table></div>';
+  let pushBody="";
+  pushRows.forEach(function(r){
+    const response=r.actioned_at?Math.max(0,Math.round((new Date(r.actioned_at)-new Date(r.pushed_at))/60000)):null;
+    pushBody+='<tr><td>'+esc(fmtDateTime(r.pushed_at))+'</td><td>'+esc(r.customer_name||"")+'</td><td>'+esc(r.salesperson_name||"")+'</td><td>'+esc(r.rego||"—")+'</td><td>'+esc(r.stock_number||"—")+'</td><td>'+esc((r.outcome||r.status||"—").replace(/_/g," "))+'</td><td>'+esc(r.actioned_by_name||"—")+'</td><td>'+(response!=null?response+" min":"—")+'</td><td>'+(r.first_inspection_at?esc(fmtDateTime(r.first_inspection_at)):"—")+'</td></tr>';
+  });
 
+  main.innerHTML='<button class="btn" id="backReport">← Deliveries</button><div class="hero" style="margin-top:20px"><div><div class="eyebrow">'+(ownOnly?"My performance":"Management")+'</div><h1>Delivery Report</h1></div></div>'+
+    '<div class="tiles" style="margin-bottom:18px"><div class="tile"><div class="tile-title">Deliveries</div><div class="tile-count">'+rows.length+'</div></div><div class="tile"><div class="tile-title">Completed</div><div class="tile-count">'+rows.filter(function(r){return r.delivery_status==="completed";}).length+'</div></div><div class="tile"><div class="tile-title">Push to Service</div><div class="tile-count">'+pushRows.length+'</div></div><div class="tile"><div class="tile-title">Service Booked</div><div class="tile-count">'+pushRows.filter(function(r){return r.outcome==="booked";}).length+'</div></div></div>'+
+    '<div class="panel table-wrap"><h2 style="margin-bottom:12px">Delivery Activity</h2><table><thead><tr><th>Date</th><th>Customer</th><th>Brand</th><th>Salesperson</th><th>Status</th><th>Steps</th><th>Service Advisor</th><th>Inspection</th><th>Duration</th></tr></thead><tbody>'+body+'</tbody></table></div>'+
+    '<div class="panel table-wrap" style="margin-top:18px"><h2 style="margin-bottom:12px">Push to Service Activity</h2><table><thead><tr><th>Pushed</th><th>Customer</th><th>Salesperson</th><th>Rego</th><th>Stock #</th><th>Outcome</th><th>Service Team</th><th>Response</th><th>Inspection</th></tr></thead><tbody>'+(pushBody||'<tr><td colspan="9">No Push to Service activity yet.</td></tr>')+'</tbody></table></div>';
   document.getElementById("backReport").addEventListener("click",renderHome);
 }
 
@@ -731,15 +785,36 @@ function startRealtime(){
       }
     })
     .on("postgres_changes",{event:"*",schema:"public",table:"service_handoffs"},async function(payload){
-      if(activeSession && payload.new && payload.new.session_id===activeSession.id){
-        const modal=document.getElementById("qrModal");
-        if(modal)modal.remove();
-        toast("Service has completed Step 3");
-        await refreshActive(true);
-      }
+      if(activeSession && payload.new && payload.new.session_id===activeSession.id){const modal=document.getElementById("qrModal");if(modal)modal.remove();toast("Service has completed Step 3");await refreshActive(true);}
+    })
+    .on("postgres_changes",{event:"*",schema:"public",table:"service_push_queue"},async function(payload){
+      if(profile&&profile.role==="service"){await renderServiceLanding();return;}
+      if(activeSession && payload.new && payload.new.session_id===activeSession.id){toast("Service queue updated");await refreshActive(true);}
+    })
+    .on("postgres_changes",{event:"*",schema:"public",table:"deliveries"},async function(){
+      if(!activeDelivery){await loadDeliveries();renderHome();}
     })
     .subscribe();
+  startSilentPolling();
 }
+
+function startSilentPolling(){
+  if(silentPollTimer||!profile||profile.role==="service")return;
+  silentPollTimer=setInterval(async function(){
+    if(document.hidden)return;
+    const activeId=activeDelivery&&activeDelivery.id;
+    await syncFromTim("",homeMode==="outstanding"?"outstanding":null);
+    await loadDeliveries();
+    if(activeId){await refreshActive(true);}else if(document.getElementById("main")){renderHome();}
+  },45000);
+}
+
+document.addEventListener("visibilitychange",async function(){
+  if(!document.hidden&&sb&&profile&&profile.role!=="service"){
+    await syncFromTim("",homeMode==="outstanding"?"outstanding":null);await loadDeliveries();
+    if(activeDelivery)await refreshActive(true);else if(document.getElementById("main"))renderHome();
+  }
+});
 
 init().catch(function(err){
   console.error(err);
