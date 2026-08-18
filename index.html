@@ -70,8 +70,12 @@ p{color:var(--muted);line-height:1.5}
 .customer-name{font-size:19px;font-weight:950}
 .customer-meta{font-size:13px;color:var(--muted);margin-top:5px}
 .status{display:inline-flex;padding:7px 10px;border-radius:999px;font-size:11px;font-weight:900;text-transform:uppercase;letter-spacing:.03em;background:#f0f1f4;color:#737b89}
-.status.in_progress,.status.waiting_service{background:#fff4dc;color:#9c6500}
-.status.completed{background:#e9f9f1;color:#11804a}
+.status.in_progress,.status.waiting_service,.status.needs_action{background:#fff4dc;color:#9c6500}
+.status.booked,.status.completed{background:#e9f9f1;color:#11804a}
+body.reports-wide main{max-width:1680px}
+body.reports-wide .topbar-inner{max-width:1680px}
+body.reports-wide .table-wrap{overflow-x:auto}
+body.reports-wide table{min-width:1480px}
 .empty{padding:40px;text-align:center;border:1px dashed #ccd1da;border-radius:22px;color:var(--muted);background:rgba(255,255,255,.55)}
 .delivery-head{display:flex;justify-content:space-between;gap:18px;align-items:flex-start;margin:20px 0}
 .delivery-vehicle{font-size:16px;color:var(--muted);margin-top:8px}
@@ -236,12 +240,24 @@ function brandBucket(d){
   return brand||"OTHER";
 }
 function statusText(s){return String(s||"scheduled").replace(/_/g," ");}
+function displayStatus(d){
+  if(d.status==="completed")return{key:"completed",label:"Completed"};
+  if(d.status==="waiting_service")return{key:"waiting_service",label:"Waiting Service"};
+  if(d.status==="in_progress")return{key:"in_progress",label:"In Progress"};
+  if(d.scheduled_delivery_at)return{key:"booked",label:"Booked"};
+  return{key:"needs_action",label:"Needs Action"};
+}
 function isOutstanding(d){return d.status!=="completed"&&d.status!=="cancelled";}
 function isPast(value){return !!value && new Date(value).getTime()<Date.now() && !isToday(value);}
 function expectedDate(d){return d.estimated_delivery_at||d.scheduled_delivery_at||null;}
 function isBooked(d){return !!d.scheduled_delivery_at;}
+function currentMonthKey(){return melbourneDateKey().slice(0,7);}
 function outstandingRows(){
-  return deliveries.filter(isOutstanding).sort(function(a,b){
+  return deliveries.filter(function(d){
+    if(!isOutstanding(d))return false;
+    const cohort=d.estimated_delivery_at||d.scheduled_delivery_at;
+    return cohort && monthKey(cohort)===currentMonthKey();
+  }).sort(function(a,b){
     const bucket=function(d){if(isToday(d.scheduled_delivery_at))return 0;if(isPast(d.scheduled_delivery_at))return 1;if(d.scheduled_delivery_at)return 2;if(expectedDate(d))return 3;return 4;};
     const ba=bucket(a),bb=bucket(b);if(ba!==bb)return ba-bb;
     const ad=expectedDate(a),bd=expectedDate(b);
@@ -282,6 +298,17 @@ function serviceOutcomeFor(row,pushByDelivery){
   if(row.first_inspection_booked)return"booked";
   if(row.service_advisor)return"intro_follow";
   return null;
+}
+function minutesBetween(start,end){
+  if(!start||!end)return null;
+  const ms=new Date(end).getTime()-new Date(start).getTime();
+  return Number.isFinite(ms)&&ms>=0?Math.round(ms/60000):null;
+}
+function durationText(minutes){
+  if(minutes==null)return"—";
+  if(minutes<60)return minutes+" min";
+  const h=Math.floor(minutes/60),m=minutes%60;
+  return h+"h"+(m?" "+m+"m":"");
 }
 async function renderCurrentView(){
   if(currentView==="reports"){await renderReports(reportOwnOnly);return;}
@@ -533,6 +560,7 @@ function filteredDeliveries(){
 }
 
 function renderHome(){
+  document.body.classList.remove("reports-wide");
   const main=document.getElementById("main");
   if(!main)return;
   currentView="home";
@@ -551,13 +579,14 @@ function renderHome(){
   let customerHtml="";
   if(rows.length){
     rows.forEach(function(d){
-      customerHtml+='<div class="customer-card"><div><div class="customer-name">'+esc(d.customer_first_name)+' '+esc(d.customer_last_name)+'</div><div class="customer-meta">'+esc(d.vehicle_make||"")+' '+esc(d.vehicle_model||"")+(d.rego?' • Rego '+esc(d.rego):'')+(d.stock_number?' • Stock '+esc(d.stock_number):'')+'</div><div class="next-action">'+esc(nextActionText(d))+'</div>'+(isManagement()?'<div class="customer-meta">'+esc(d.assigned_salesperson_name||"Unassigned")+'</div>':'')+'</div><div style="display:flex;align-items:center;gap:9px;flex-wrap:wrap">'+(needsAttention(d)?'<span class="attention">● Needs attention</span>':'')+'<span class="status '+esc(d.status)+'">'+esc(statusText(d.status))+'</span><button class="btn primary open-delivery" data-id="'+esc(d.id)+'">'+(d.status==="completed"?"VIEW":"OPEN")+' →</button></div></div>';
+      const ds=displayStatus(d);
+      customerHtml+='<div class="customer-card"><div><div class="customer-name">'+esc(d.customer_first_name)+' '+esc(d.customer_last_name)+'</div><div class="customer-meta">'+esc(d.vehicle_make||"")+' '+esc(d.vehicle_model||"")+(d.rego?' • Rego '+esc(d.rego):'')+(d.stock_number?' • Stock '+esc(d.stock_number):'')+'</div><div class="next-action">'+esc(nextActionText(d))+'</div>'+(isManagement()?'<div class="customer-meta">'+esc(d.assigned_salesperson_name||"Unassigned")+'</div>':'')+'</div><div style="display:flex;align-items:center;gap:9px;flex-wrap:wrap">'+(needsAttention(d)&&ds.key!=="needs_action"?'<span class="attention">● Needs attention</span>':'')+'<span class="status '+esc(ds.key)+'">'+esc(ds.label)+'</span><button class="btn primary open-delivery" data-id="'+esc(d.id)+'">'+(d.status==="completed"?"VIEW":"OPEN")+' →</button></div></div>';
     });
   }else customerHtml='<div class="empty" style="grid-column:1/-1">'+(searchText?"No matching deliveries found.":homeMode==="outstanding"?"No outstanding deliveries in this view.":"No deliveries in this view.")+'</div>';
 
   const modeTitle=homeMode==="outstanding"?(isManagement()?"All Outstanding Deliveries":"My Outstanding Deliveries"):"Deliveries";
   main.innerHTML='<div class="hero"><div><div class="eyebrow">'+(homeMode==="outstanding"?"Workload":"Today")+'</div><h1>'+modeTitle+'</h1></div><div><div class="small">'+esc(melbourneDateKey())+' • Melbourne</div><div class="updated-note" id="updatedNote">'+updatedLabel()+'</div></div></div>'+
-    '<div class="view-actions"><button class="view-pill '+(homeMode==="today"?"active":"")+'" id="todayView">TODAY</button><button class="view-pill '+(homeMode==="outstanding"?"active":"")+'" id="outstandingView">'+(isManagement()?"ALL DELIVERIES":"ALL MY DELIVERIES")+' · '+outstanding.length+'</button><button class="view-pill" id="deliveredView">DELIVERED</button>'+(attentionCount?'<span class="attention">Needs Attention · '+attentionCount+'</span>':'')+'</div>'+
+    '<div class="view-actions"><button class="view-pill '+(homeMode==="today"?"active":"")+'" id="todayView">TODAY</button><button class="view-pill '+(homeMode==="outstanding"?"active":"")+'" id="outstandingView">'+(isManagement()?"ALL OUTSTANDING":"MY OUTSTANDING")+' · '+outstanding.length+'</button><button class="view-pill" id="deliveredView">DELIVERED</button>'+(attentionCount?'<span class="attention">Needs Attention · '+attentionCount+'</span>':'')+'</div>'+
     '<div class="tiles">'+tileHtml+'</div><div class="searchbar"><input id="searchInput" value="'+esc(searchText)+'" placeholder="Search customer, deal #, email, stock #..."><button class="btn primary" id="searchAll">SEARCH ALL →</button><button class="btn" id="clearSearch">Clear</button></div><div class="customer-grid">'+customerHtml+'</div>';
 
   document.getElementById("todayView").addEventListener("click",showTodayDeliveries);
@@ -572,6 +601,7 @@ function renderHome(){
 }
 
 async function openDelivery(id,returnView){
+  document.body.classList.remove("reports-wide");
   deliveryReturnView=returnView||currentView||"home";
   currentView="delivery";
   activeDelivery=deliveries.find(function(d){return d.id===id;});
@@ -657,7 +687,7 @@ function renderDelivery(){
       '<div><div class="eyebrow">'+esc(brandBucket(activeDelivery))+' • '+esc(activeDelivery.deal_number||"")+'</div>'+
       '<h1>'+esc(activeDelivery.customer_first_name)+' '+esc(activeDelivery.customer_last_name)+'</h1>'+
       '<div class="delivery-vehicle">'+esc(activeDelivery.vehicle_make||"")+' '+esc(activeDelivery.vehicle_model||"")+(activeDelivery.rego?' • Rego '+esc(activeDelivery.rego):'')+(activeDelivery.stock_number?' • Stock '+esc(activeDelivery.stock_number):'')+'</div></div>'+
-      '<span class="status '+esc(activeDelivery.status)+'">'+esc(statusText(activeDelivery.status))+'</span>'+
+      '<span class="status '+esc(displayStatus(activeDelivery).key)+'">'+esc(displayStatus(activeDelivery).label)+'</span>'+
     '</div>'+
     '<div class="step-grid">'+stepHtml+'</div>'+
     '<div class="progress-box"><div><small>Delivery progress</small><strong>'+completed+' / 4 complete</strong></div>'+
@@ -822,6 +852,7 @@ async function completeServicePush(id,outcome,booking,notes){
 
 
 function renderDelivered(){
+  document.body.classList.remove("reports-wide");
   const main=document.getElementById("main");
   if(!main)return;
   currentView="delivered";
@@ -854,26 +885,49 @@ function renderDelivered(){
 async function renderReports(ownOnly){
   const main=document.getElementById("main");
   if(!main)return;
+  document.body.classList.add("reports-wide");
   currentView="reports";
   reportOwnOnly=!!ownOnly;
 
-  // The cohort comes from deliveries so unbooked vehicles with an Estimated Delivery Date count.
-  let dq=sb.from("deliveries").select("*").order("estimated_delivery_at",{ascending:false,nullsFirst:false}).limit(2000);
+  let dq=sb.from("deliveries").select("*").order("estimated_delivery_at",{ascending:false,nullsFirst:false}).limit(3000);
   if(ownOnly)dq=dq.eq("assigned_salesperson_id",currentUser.id);
   const dres=await dq;
   if(dres.error){toast(dres.error.message);return;}
   const allDeliveries=dres.data||[];
 
-  // delivery_report remains the audit/process layer for completed steps + Service details.
-  let rq=sb.from("delivery_report").select("*").order("scheduled_delivery_at",{ascending:false}).limit(2000);
+  let rq=sb.from("delivery_report").select("*").order("scheduled_delivery_at",{ascending:false}).limit(3000);
   if(ownOnly)rq=rq.eq("assigned_salesperson_id",currentUser.id);
   const rres=await rq;
   const auditRows=rres.error?[]:(rres.data||[]);
 
-  let sq=sb.from("service_push_queue").select("*").order("pushed_at",{ascending:false}).limit(2000);
+  let sq=sb.from("service_push_queue").select("*").order("pushed_at",{ascending:false}).limit(3000);
   if(ownOnly)sq=sq.eq("salesperson_id",currentUser.id);
   const sres=await sq;
   const allPushRows=sres.error?[]:(sres.data||[]);
+
+  // Session / step / handoff detail is read directly so timestamps and
+  // elapsed times stay visible without changing the existing report view.
+  let sessQ=sb.from("delivery_sessions").select("*").limit(3000);
+  const sessRes=await sessQ;
+  let allSessions=sessRes.error?[]:(sessRes.data||[]);
+  if(ownOnly){
+    const allowed=new Set(allDeliveries.map(function(d){return d.id;}));
+    allSessions=allSessions.filter(function(s){return allowed.has(s.delivery_id);});
+  }
+
+  let stepRows=[];
+  if(allSessions.length){
+    const sessionIds=allSessions.map(function(s){return s.id;});
+    const stRes=await sb.from("delivery_steps").select("*").in("session_id",sessionIds).limit(10000);
+    stepRows=stRes.error?[]:(stRes.data||[]);
+  }
+
+  let handoffRows=[];
+  if(allSessions.length){
+    const sessionIds=allSessions.map(function(s){return s.id;});
+    const hRes=await sb.from("service_handoffs").select("*").in("session_id",sessionIds).limit(5000);
+    handoffRows=hRes.error?[]:(hRes.data||[]);
+  }
 
   const auditByDelivery=new Map();
   auditRows.forEach(function(r){
@@ -883,25 +937,79 @@ async function renderReports(ownOnly){
   const pushByDelivery=new Map();
   allPushRows.forEach(function(r){if(r.delivery_id)pushByDelivery.set(r.delivery_id,r);});
 
+  const sessionByDelivery=new Map();
+  allSessions.forEach(function(s){if(s.delivery_id)sessionByDelivery.set(String(s.delivery_id),s);});
+
+  const stepsBySession=new Map();
+  stepRows.forEach(function(s){
+    if(!stepsBySession.has(String(s.session_id)))stepsBySession.set(String(s.session_id),[]);
+    stepsBySession.get(String(s.session_id)).push(s);
+  });
+
+  const handoffBySession=new Map();
+  handoffRows.forEach(function(h){
+    const key=String(h.session_id);
+    const prev=handoffBySession.get(key);
+    if(!prev||new Date(h.created_at||0)>new Date(prev.created_at||0))handoffBySession.set(key,h);
+  });
+
   function auditFor(d){return auditByDelivery.get(String(d.id))||auditByDelivery.get(String(d.deal_number||""))||null;}
-  function cohortMonth(d){return monthKey(d.estimated_delivery_at||d.scheduled_delivery_at);}
+  function sessionFor(d){return sessionByDelivery.get(String(d.id))||null;}
+  function completionAt(d){
+    const s=sessionFor(d);
+    const a=auditFor(d)||{};
+    return (s&&(s.completed_at||s.finished_at))||a.completed_at||a.delivery_completed_at||null;
+  }
+  function firstStepAt(d){
+    const s=sessionFor(d);
+    if(!s)return null;
+    const arr=stepsBySession.get(String(s.id))||[];
+    const times=arr.map(function(x){return x.completed_at;}).filter(Boolean).sort();
+    return times.length?times[0]:null;
+  }
+  function processMinutes(d){
+    const a=auditFor(d)||{};
+    const calculated=minutesBetween(firstStepAt(d),completionAt(d));
+    if(calculated!=null)return calculated;
+    return a.delivery_duration_minutes!=null?Math.round(Number(a.delivery_duration_minutes)):null;
+  }
+  function step3Timing(d){
+    const p=pushByDelivery.get(d.id);
+    if(p){
+      return{
+        start:p.pushed_at||null,
+        end:p.actioned_at||null,
+        minutes:minutesBetween(p.pushed_at,p.actioned_at)
+      };
+    }
+    const s=sessionFor(d);
+    const h=s?handoffBySession.get(String(s.id)):null;
+    if(!h)return{start:null,end:null,minutes:null};
+    const end=h.completed_at||h.actioned_at||h.updated_at||null;
+    return{start:h.created_at||null,end:end,minutes:minutesBetween(h.created_at,end)};
+  }
+  function reportMonthMatch(d,k){
+    return [d.estimated_delivery_at,d.scheduled_delivery_at,completionAt(d)]
+      .filter(Boolean)
+      .some(function(v){return monthKey(v)===k;});
+  }
 
   const salespersonNames=Array.from(new Set(allDeliveries.map(function(r){return r.assigned_salesperson_name;}).filter(Boolean))).sort(function(a,b){return a.localeCompare(b);});
   const brands=Array.from(new Set(allDeliveries.map(function(r){return brandBucket(r);}).filter(Boolean))).sort(function(a,b){return a.localeCompare(b);});
 
   const scopeRows=allDeliveries.filter(function(r){
-    if(!expectedDate(r))return false;
     if(!ownOnly&&reportSalesperson!=="ALL"&&r.assigned_salesperson_name!==reportSalesperson)return false;
     if(reportBrand!=="ALL"&&brandBucket(r)!==reportBrand)return false;
-    return true;
+    return !!(r.estimated_delivery_at||r.scheduled_delivery_at||completionAt(r));
   });
 
-  const rows=scopeRows.filter(function(r){return cohortMonth(r)===reportMonth;});
-  const expected=rows.length;
+  // Reports are the full monthly cohort: included if estimated, booked OR completed in the month.
+  const rows=scopeRows.filter(function(r){return reportMonthMatch(r,reportMonth);});
+  const total=rows.length;
   const booked=rows.filter(isBooked).length;
   const completed=rows.filter(function(r){return r.status==="completed";}).length;
-  const bookingPct=expected?Math.round((booked/expected)*100):0;
-  const completedPct=expected?Math.round((completed/expected)*100):0;
+  const bookingPct=total?Math.round((booked/total)*100):0;
+  const completedPct=total?Math.round((completed/total)*100):0;
 
   const outcomeCounts={booked:0,intro_follow:0,push:0};
   rows.forEach(function(d){
@@ -910,55 +1018,88 @@ async function renderReports(ownOnly){
     if(o)outcomeCounts[o]++;
   });
   const serviceEngaged=outcomeCounts.booked+outcomeCounts.intro_follow+outcomeCounts.push;
-  const servicePct=expected?Math.round((serviceEngaged/expected)*100):0;
+  const servicePct=total?Math.round((serviceEngaged/total)*100):0;
 
   let personOptions='<option value="ALL">All Salespeople</option>';
   salespersonNames.forEach(function(n){personOptions+='<option value="'+esc(n)+'" '+(reportSalesperson===n?'selected':'')+'>'+esc(n)+'</option>';});
   let brandOptions='<option value="ALL">All Brands</option>';
   brands.forEach(function(n){brandOptions+='<option value="'+esc(n)+'" '+(reportBrand===n?'selected':'')+'>'+esc(n)+'</option>';});
 
-  const availableMonths=Array.from(new Set(scopeRows.map(cohortMonth).filter(Boolean))).sort().reverse();
+  const monthSet=new Set();
+  scopeRows.forEach(function(d){
+    [d.estimated_delivery_at,d.scheduled_delivery_at,completionAt(d)].filter(Boolean).forEach(function(v){monthSet.add(monthKey(v));});
+  });
+  const availableMonths=Array.from(monthSet).filter(Boolean).sort().reverse();
   if(!availableMonths.includes(reportMonth))availableMonths.unshift(reportMonth);
   let monthOptions="";
   availableMonths.forEach(function(k){monthOptions+='<option value="'+esc(k)+'" '+(reportMonth===k?'selected':'')+'>'+esc(monthLabel(k))+'</option>';});
 
   let body="";
-  rows.slice().sort(function(a,b){return new Date(expectedDate(a)||0)-new Date(expectedDate(b)||0);}).forEach(function(d){
+  rows.slice().sort(function(a,b){
+    const ad=a.estimated_delivery_at||a.scheduled_delivery_at||completionAt(a)||0;
+    const bd=b.estimated_delivery_at||b.scheduled_delivery_at||completionAt(b)||0;
+    return new Date(ad)-new Date(bd);
+  }).forEach(function(d){
     const a=auditFor(d)||{};
     const outcome=serviceOutcomeFor(a,pushByDelivery);
     const outcomeText=outcome==="booked"?"Service Booked":outcome==="intro_follow"?"In-Person Intro / Booking to Follow":outcome==="push"?"Push to Service":"—";
     const vehicle=((d.vehicle_make||"")+" "+(d.vehicle_model||"")).trim()||d.brand||"—";
-    body+='<tr><td>'+esc(d.estimated_delivery_at?fmtDateTime(d.estimated_delivery_at):"—")+'</td><td>'+esc(d.scheduled_delivery_at?fmtDateTime(d.scheduled_delivery_at):"Not booked")+'</td><td>'+esc(d.customer_first_name)+' '+esc(d.customer_last_name)+'</td><td>'+esc(vehicle)+'</td><td>'+esc(d.assigned_salesperson_name||"")+'</td><td>'+esc(statusText(d.status))+'</td><td>'+esc(a.completed_steps||0)+'/4</td><td>'+esc(outcomeText)+'</td><td>'+esc(a.service_advisor||"—")+'</td></tr>';
+    const ds=displayStatus(d);
+    const startAt=firstStepAt(d);
+    const doneAt=completionAt(d);
+    const pmins=processMinutes(d);
+    const s3=step3Timing(d);
+
+    body+='<tr>'+
+      '<td>'+esc(d.estimated_delivery_at?fmtDateTime(d.estimated_delivery_at):"—")+'</td>'+
+      '<td>'+esc(d.scheduled_delivery_at?fmtDateTime(d.scheduled_delivery_at):"Not booked")+'</td>'+
+      '<td>'+esc(doneAt?fmtDateTime(doneAt):"—")+'</td>'+
+      '<td>'+esc(d.customer_first_name)+' '+esc(d.customer_last_name)+'</td>'+
+      '<td>'+esc(vehicle)+'</td>'+
+      '<td>'+esc(d.rego||"—")+'</td>'+
+      '<td>'+esc(d.stock_number||"—")+'</td>'+
+      '<td>'+esc(d.assigned_salesperson_name||"")+'</td>'+
+      '<td><span class="status '+esc(ds.key)+'">'+esc(ds.label)+'</span></td>'+
+      '<td>'+esc(a.completed_steps||0)+'/4</td>'+
+      '<td>'+esc(outcomeText)+'</td>'+
+      '<td>'+esc(a.service_advisor||(pushByDelivery.get(d.id)&&pushByDelivery.get(d.id).actioned_by_name)||"—")+'</td>'+
+      '<td>'+esc(startAt?fmtDateTime(startAt):"—")+'</td>'+
+      '<td>'+esc(doneAt?fmtDateTime(doneAt):"—")+'</td>'+
+      '<td>'+esc(durationText(pmins))+'</td>'+
+      '<td>'+esc(s3.start?fmtDateTime(s3.start):"—")+'</td>'+
+      '<td>'+esc(s3.end?fmtDateTime(s3.end):"—")+'</td>'+
+      '<td>'+esc(durationText(s3.minutes))+'</td>'+
+    '</tr>';
   });
 
   const chartMonths=lastMonthKeys(reportMonth,6);
   let chartHtml="";
   chartMonths.forEach(function(k){
-    const mr=scopeRows.filter(function(r){return cohortMonth(r)===k;});
-    const total=mr.length||0;
+    const mr=scopeRows.filter(function(r){return reportMonthMatch(r,k);});
+    const n=mr.length||0;
     const bookedN=mr.filter(isBooked).length;
     const c={booked:0,intro_follow:0,push:0};
     mr.forEach(function(d){const o=serviceOutcomeFor(auditFor(d)||d,pushByDelivery);if(o)c[o]++;});
-    const bp=total?(bookedN/total*100):0;
-    const sbp=total?(c.booked/total*100):0;
-    const ip=total?(c.intro_follow/total*100):0;
-    const pp=total?(c.push/total*100):0;
-    chartHtml+='<div style="display:grid;gap:5px"><div class="chart-row"><div class="chart-month">'+esc(monthLabel(k).replace(/ \d{4}$/,""))+'</div><div class="chart-track" title="Booking coverage '+Math.round(bp)+'%"><div class="chart-seg chart-booked" style="width:'+bp.toFixed(2)+'%"></div></div><div class="chart-total">'+bookedN+'/'+total+'</div></div><div class="chart-row"><div class="chart-month" style="font-size:10px;color:#8b91a0">Service</div><div class="chart-track"><div class="chart-seg chart-booked" style="width:'+sbp.toFixed(2)+'%"></div><div class="chart-seg chart-intro" style="width:'+ip.toFixed(2)+'%"></div><div class="chart-seg chart-push" style="width:'+pp.toFixed(2)+'%"></div></div><div class="chart-total">'+(c.booked+c.intro_follow+c.push)+'/'+total+'</div></div></div>';
+    const bp=n?(bookedN/n*100):0;
+    const sbp=n?(c.booked/n*100):0;
+    const ip=n?(c.intro_follow/n*100):0;
+    const pp=n?(c.push/n*100):0;
+    chartHtml+='<div style="display:grid;gap:5px"><div class="chart-row"><div class="chart-month">'+esc(monthLabel(k).replace(/ \d{4}$/,""))+'</div><div class="chart-track" title="Booking coverage '+Math.round(bp)+'%"><div class="chart-seg chart-booked" style="width:'+bp.toFixed(2)+'%"></div></div><div class="chart-total">'+bookedN+'/'+n+'</div></div><div class="chart-row"><div class="chart-month" style="font-size:10px;color:#8b91a0">Service</div><div class="chart-track"><div class="chart-seg chart-booked" style="width:'+sbp.toFixed(2)+'%"></div><div class="chart-seg chart-intro" style="width:'+ip.toFixed(2)+'%"></div><div class="chart-seg chart-push" style="width:'+pp.toFixed(2)+'%"></div></div><div class="chart-total">'+(c.booked+c.intro_follow+c.push)+'/'+n+'</div></div></div>';
   });
 
-  main.innerHTML='<button class="btn" id="backReport">← Deliveries</button>'+ 
-    '<div class="hero" style="margin-top:20px"><div><div class="eyebrow">'+(ownOnly?"My performance":"Management")+'</div><h1>Delivery Report</h1></div><div class="small">Expected Delivery Date = monthly cohort</div></div>'+ 
+  main.innerHTML='<button class="btn" id="backReport">← Deliveries</button>'+
+    '<div class="hero" style="margin-top:20px"><div><div class="eyebrow">'+(ownOnly?"My performance":"Management")+'</div><h1>Delivery Report</h1></div><div class="small">Monthly report includes Estimated, Booked or Completed activity</div></div>'+
     '<div class="report-filters">'+
-      '<div class="field"><label>Month</label><select id="reportMonth">'+monthOptions+'</select></div>'+ 
+      '<div class="field"><label>Month</label><select id="reportMonth">'+monthOptions+'</select></div>'+
       (!ownOnly?'<div class="field"><label>Salesperson</label><select id="reportSalesperson">'+personOptions+'</select></div>':'<div class="field"><label>Salesperson</label><input value="'+esc(profile.full_name)+'" disabled></div>')+
-      '<div class="field"><label>Brand</label><select id="reportBrand">'+brandOptions+'</select></div>'+ 
-    '</div>'+ 
-    '<div class="tiles" style="margin-bottom:18px"><div class="tile"><div class="tile-title">Expected Deliveries</div><div class="tile-count">'+expected+'</div><div class="tile-meta">'+esc(monthLabel(reportMonth))+'</div></div><div class="tile"><div class="tile-title">Delivery Booked</div><div class="tile-count">'+booked+'</div><div class="tile-meta">'+bookingPct+'% of expected</div></div><div class="tile"><div class="tile-title">Completed Deliveries</div><div class="tile-count">'+completed+'</div><div class="tile-meta">'+completedPct+'% of expected</div></div><div class="tile"><div class="tile-title">Service Engagement</div><div class="tile-count">'+serviceEngaged+'</div><div class="tile-meta">'+servicePct+'% of expected</div></div></div>'+ 
-    '<div class="report-subtiles"><div class="report-subtile"><div class="eyebrow">Service outcome 1</div><strong>'+outcomeCounts.booked+'</strong><div class="small">Service Booked · '+(expected?Math.round(outcomeCounts.booked/expected*100):0)+'%</div></div><div class="report-subtile"><div class="eyebrow">Service outcome 2</div><strong>'+outcomeCounts.intro_follow+'</strong><div class="small">In-Person Intro / Booking to Follow · '+(expected?Math.round(outcomeCounts.intro_follow/expected*100):0)+'%</div></div><div class="report-subtile"><div class="eyebrow">Service outcome 3</div><strong>'+outcomeCounts.push+'</strong><div class="small">Push to Service · '+(expected?Math.round(outcomeCounts.push/expected*100):0)+'%</div></div></div>'+ 
-    '<div class="panel" style="margin-bottom:18px"><div style="display:flex;justify-content:space-between;align-items:flex-end;gap:12px;flex-wrap:wrap"><div><div class="eyebrow">6 month trend</div><h2 style="margin-top:5px">Coverage & Service Outcomes</h2></div><div class="small">Top bar = booked ÷ expected • lower bar = the 3 Service outcomes ÷ expected</div></div><div class="report-chart" style="margin-top:20px">'+chartHtml+'</div><div class="chart-legend"><span><i class="legend-dot chart-booked"></i>Booked / Service Booked</span><span><i class="legend-dot chart-intro"></i>In-Person Intro / Booking to Follow</span><span><i class="legend-dot chart-push"></i>Push to Service</span></div></div>'+ 
-    '<div class="panel table-wrap"><h2 style="margin-bottom:12px">Delivery Activity</h2><table><thead><tr><th>Estimated</th><th>Booked</th><th>Customer</th><th>Vehicle</th><th>Salesperson</th><th>Status</th><th>Steps</th><th>Service Outcome</th><th>Service Advisor</th></tr></thead><tbody>'+(body||'<tr><td colspan="9">No expected deliveries for this filter.</td></tr>')+'</tbody></table></div>';
+      '<div class="field"><label>Brand</label><select id="reportBrand">'+brandOptions+'</select></div>'+
+    '</div>'+
+    '<div class="tiles" style="margin-bottom:18px"><div class="tile"><div class="tile-title">Monthly Deliveries</div><div class="tile-count">'+total+'</div><div class="tile-meta">'+esc(monthLabel(reportMonth))+'</div></div><div class="tile"><div class="tile-title">Delivery Booked</div><div class="tile-count">'+booked+'</div><div class="tile-meta">'+bookingPct+'% of monthly cohort</div></div><div class="tile"><div class="tile-title">Completed Deliveries</div><div class="tile-count">'+completed+'</div><div class="tile-meta">'+completedPct+'% of monthly cohort</div></div><div class="tile"><div class="tile-title">Service Engagement</div><div class="tile-count">'+serviceEngaged+'</div><div class="tile-meta">'+servicePct+'% of monthly cohort</div></div></div>'+
+    '<div class="report-subtiles"><div class="report-subtile"><div class="eyebrow">Service outcome 1</div><strong>'+outcomeCounts.booked+'</strong><div class="small">Service Booked · '+(total?Math.round(outcomeCounts.booked/total*100):0)+'%</div></div><div class="report-subtile"><div class="eyebrow">Service outcome 2</div><strong>'+outcomeCounts.intro_follow+'</strong><div class="small">In-Person Intro / Booking to Follow · '+(total?Math.round(outcomeCounts.intro_follow/total*100):0)+'%</div></div><div class="report-subtile"><div class="eyebrow">Service outcome 3</div><strong>'+outcomeCounts.push+'</strong><div class="small">Push to Service · '+(total?Math.round(outcomeCounts.push/total*100):0)+'%</div></div></div>'+
+    '<div class="panel" style="margin-bottom:18px"><div style="display:flex;justify-content:space-between;align-items:flex-end;gap:12px;flex-wrap:wrap"><div><div class="eyebrow">6 month trend</div><h2 style="margin-top:5px">Coverage & Service Outcomes</h2></div><div class="small">Top bar = booked ÷ monthly cohort • lower bar = Service outcomes ÷ monthly cohort</div></div><div class="report-chart" style="margin-top:20px">'+chartHtml+'</div><div class="chart-legend"><span><i class="legend-dot chart-booked"></i>Booked / Service Booked</span><span><i class="legend-dot chart-intro"></i>In-Person Intro / Booking to Follow</span><span><i class="legend-dot chart-push"></i>Push to Service</span></div></div>'+
+    '<div class="panel table-wrap"><h2 style="margin-bottom:12px">Delivery Activity</h2><table><thead><tr><th>Estimated</th><th>Booked</th><th>Delivered</th><th>Customer</th><th>Vehicle</th><th>Rego</th><th>Stock #</th><th>Salesperson</th><th>Status</th><th>Steps</th><th>Service Outcome</th><th>Service Advisor</th><th>First Step</th><th>Completed</th><th>Total Process</th><th>Step 3 Sent</th><th>Step 3 Done</th><th>Step 3 Time</th></tr></thead><tbody>'+(body||'<tr><td colspan="18">No delivery activity for this filter.</td></tr>')+'</tbody></table></div>';
 
-  document.getElementById("backReport").addEventListener("click",function(){currentView="home";renderHome();});
+  document.getElementById("backReport").addEventListener("click",function(){document.body.classList.remove("reports-wide");currentView="home";renderHome();});
   document.getElementById("reportMonth").addEventListener("change",function(e){reportMonth=e.target.value;renderReports(ownOnly);});
   const rs=document.getElementById("reportSalesperson");if(rs)rs.addEventListener("change",function(e){reportSalesperson=e.target.value;renderReports(ownOnly);});
   document.getElementById("reportBrand").addEventListener("change",function(e){reportBrand=e.target.value;renderReports(ownOnly);});
