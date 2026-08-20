@@ -283,15 +283,47 @@ function isPast(value){return !!value && new Date(value).getTime()<Date.now() &&
 function expectedDate(d){return d.estimated_delivery_at||d.scheduled_delivery_at||null;}
 function isBooked(d){return !!d.scheduled_delivery_at;}
 function currentMonthKey(){return melbourneDateKey().slice(0,7);}
+function deliveryIdentity(d){
+  const deal=normalisedDealNumber(d);
+  if(deal)return"DEAL:"+deal;
+  const customer=((d.customer_first_name||"")+" "+(d.customer_last_name||"")).trim().toUpperCase().replace(/\s+/g," ");
+  const stock=String(d.stock_number||"").trim().toUpperCase();
+  if(customer&&stock)return"FALLBACK:"+customer+"|"+stock;
+  return"ROW:"+String(d.id||d.source_external_id||"");
+}
+function dedupeDeliveryRows(rows){
+  const byKey=new Map();
+  rows.forEach(function(d){
+    const key=deliveryIdentity(d);
+    const prev=byKey.get(key);
+    if(!prev){byKey.set(key,d);return;}
+    const score=function(x){
+      return (x.status==="in_progress"||x.status==="waiting_service"?40:0)
+        +(x.scheduled_delivery_at?20:0)
+        +(x.estimated_delivery_at?10:0)
+        +(x.rego?4:0)
+        +(x.stock_number?2:0)
+        +(x.deal_number?1:0);
+    };
+    const a=score(prev),b=score(d);
+    if(b>a){byKey.set(key,d);return;}
+    if(b===a){
+      const pt=new Date(prev.updated_at||prev.created_at||0).getTime()||0;
+      const dt=new Date(d.updated_at||d.created_at||0).getTime()||0;
+      if(dt>pt)byKey.set(key,d);
+    }
+  });
+  return Array.from(byKey.values());
+}
 function inCurrentMonth(d){
   return [d.estimated_delivery_at,d.scheduled_delivery_at].filter(Boolean).some(function(v){return monthKey(v)===currentMonthKey();});
 }
 function isOverdueDelivery(d){return isOutstanding(d)&&!!operationalDate(d)&&isPast(operationalDate(d));}
 function remainingRows(){
-  return deliveries.filter(function(d){return isOutstanding(d)&&inCurrentMonth(d);}).sort(stableDeliverySort);
+  return dedupeDeliveryRows(deliveries.filter(function(d){return isOutstanding(d)&&inCurrentMonth(d);})).sort(stableDeliverySort);
 }
 function overdueRows(){
-  return deliveries.filter(isOverdueDelivery).sort(stableDeliverySort);
+  return dedupeDeliveryRows(deliveries.filter(isOverdueDelivery)).sort(stableDeliverySort);
 }
 function outstandingRows(){return remainingRows();}
 function needsAttention(d){return isOutstanding(d)&&(isOverdueDelivery(d)||!d.scheduled_delivery_at||d.status==="waiting_service");}
@@ -639,7 +671,7 @@ function filteredDeliveries(){
   let rows;
   if(homeMode==="remaining")rows=remainingRows();
   else if(homeMode==="overdue")rows=overdueRows();
-  else rows=deliveries.filter(function(d){return isToday(operationalDate(d))&&isOutstanding(d);}).sort(stableDeliverySort);
+  else rows=dedupeDeliveryRows(deliveries.filter(function(d){return isToday(operationalDate(d))&&isOutstanding(d);})).sort(stableDeliverySort);
   if(selectedBrand!=="ALL")rows=rows.filter(function(d){return brandBucket(d)===selectedBrand;});
   return rows;
 }
