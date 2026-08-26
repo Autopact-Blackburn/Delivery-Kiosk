@@ -219,6 +219,15 @@ let deliveryReturnView="home";
 let silentPollTimer=null;
 let lastUpdatedAt=null;
 
+function deliveryUiSignature(){
+  return deliveries.map(function(d){
+    return [
+      d.id,d.status,d.deal_number,d.rego,d.stock_number,
+      d.estimated_delivery_at,d.scheduled_delivery_at,
+      d.assigned_salesperson_name
+    ].join("|");
+  }).sort().join("||");
+}
 function esc(v){
   return String(v==null?"":v).replace(/[&<>"']/g,function(m){
     return {"&":"&amp;","<":"&lt;",">":"&gt;","\"":"&quot;","'":"&#039;"}[m];
@@ -1214,8 +1223,12 @@ async function renderReports(ownOnly){
     });
     return Array.from(map.values());
   }
-  // Monthly report population is unique Deal Numbers that were estimated, booked or completed in the month.
-  const rows=uniqueDeals(scopeRows.filter(function(r){return reportMonthMatch(r,reportMonth);}));
+  // Detailed report population: completed deliveries only.
+  // Operationally incomplete vehicles belong in Today / Deliveries Remaining / Overdue.
+  const rows=uniqueDeals(scopeRows.filter(function(r){
+    const completedAt=completionAt(r);
+    return (r.status==="completed"||!!completedAt) && completedAt && monthKey(completedAt)===reportMonth;
+  }));
   // Covered = unique deals with a confirmed booking in the month and/or completed in the month.
   const coveredRows=rows.filter(function(d){
     return (d.scheduled_delivery_at&&monthKey(d.scheduled_delivery_at)===reportMonth)||(completionAt(d)&&monthKey(completionAt(d))===reportMonth);
@@ -1277,8 +1290,7 @@ async function renderReports(ownOnly){
     const method=step3MethodFor(d);
 
     body+='<tr>'+
-      '<td>'+esc(d.estimated_delivery_at?fmtDateTime(d.estimated_delivery_at):"—")+'</td>'+
-      '<td>'+esc(d.scheduled_delivery_at?fmtDateTime(d.scheduled_delivery_at):"Not booked")+'</td>'+
+      '<td>'+esc(serviceAppointment?fmtDateTime(serviceAppointment):"UNBOOKED")+'</td>'+
       '<td>'+esc(doneAt?fmtDateTime(doneAt):"—")+'</td>'+
       '<td>'+esc(d.customer_first_name)+' '+esc(d.customer_last_name)+'</td>'+
       '<td>'+esc(vehicle)+'</td>'+
@@ -1290,7 +1302,6 @@ async function renderReports(ownOnly){
       '<td>'+esc(a.completed_steps||0)+'/4</td>'+
       '<td>'+esc(method)+'</td>'+
       '<td>'+esc(serviceAdvisorFor(d))+'</td>'+
-      '<td>'+esc(serviceAppointment?fmtDateTime(serviceAppointment):"UNBOOKED")+'</td>'+
       '<td>'+esc(startAt?fmtDateTime(startAt):"—")+'</td>'+
       '<td>'+esc(doneAt?fmtDateTime(doneAt):"—")+'</td>'+
       '<td>'+esc(durationText(pmins))+'</td>'+
@@ -1325,37 +1336,51 @@ async function renderReports(ownOnly){
     "talia.lovric@blackburnkia.com.au",
     "tamika.berry@blackburnkia.com.au"
   ];
-  function emailLine(d){
+  function emailBlock(d,index){
     const vehicle=((d.vehicle_make||"")+" "+(d.vehicle_model||"")).trim()||d.brand||"Vehicle";
     const appt=serviceAppointmentAt(d);
     return [
-      ((d.customer_first_name||"")+" "+(d.customer_last_name||"")).trim(),
-      vehicle,
-      d.rego?"Rego "+d.rego:null,
-      d.deal_number?"Deal "+d.deal_number:null,
-      d.assigned_salesperson_name?"Sales "+d.assigned_salesperson_name:null,
-      appt?"Service "+fmtDateTime(appt):"Service UNBOOKED"
-    ].filter(Boolean).join(" | ");
+      (index+1)+". "+((d.customer_first_name||"")+" "+(d.customer_last_name||"")).trim(),
+      "   Vehicle: "+vehicle,
+      "   Rego: "+(d.rego||"—"),
+      "   Stock: "+(d.stock_number||"—"),
+      "   Deal: "+(d.deal_number||"—"),
+      "   Salesperson: "+(d.assigned_salesperson_name||"—"),
+      "   Service Appointment: "+(appt?fmtDateTime(appt):"UNBOOKED"),
+      ""
+    ].join("\n");
   }
   const emailEligible=rows.filter(function(d){return !isFleetDeal(d);});
-  const emailUnbooked=emailEligible.filter(function(d){return !serviceAppointmentAt(d);}).sort(stableDeliverySort);
-  const emailBooked=emailEligible.filter(function(d){return !!serviceAppointmentAt(d);}).sort(function(a,b){return new Date(serviceAppointmentAt(a))-new Date(serviceAppointmentAt(b));});
+  const emailUnbooked=emailEligible.filter(function(d){return !serviceAppointmentAt(d);}).sort(function(a,b){
+    return new Date(completionAt(a)||0)-new Date(completionAt(b)||0);
+  });
+  const emailBooked=emailEligible.filter(function(d){return !!serviceAppointmentAt(d);}).sort(function(a,b){
+    return new Date(serviceAppointmentAt(a))-new Date(serviceAppointmentAt(b));
+  });
+  const divider="------------------------------------------------------------";
   const emailBody=[
-    "BLACKBURN SERVICE DELIVERY FOLLOW-UP — "+monthLabel(reportMonth),
+    "BLACKBURN SERVICE DELIVERY FOLLOW-UP",
+    monthLabel(reportMonth),
     "",
+    divider,
     "UNBOOKED / ACTION REQUIRED ("+emailUnbooked.length+")",
-    emailUnbooked.length?emailUnbooked.map(emailLine).join("\\n"):"None",
+    divider,
     "",
+    emailUnbooked.length?emailUnbooked.map(function(d,i){return emailBlock(d,i);}).join("\n"):"None",
+    "",
+    divider,
     "BOOKED ("+emailBooked.length+")",
-    emailBooked.length?emailBooked.map(emailLine).join("\\n"):"None",
+    divider,
+    "",
+    emailBooked.length?emailBooked.map(function(d,i){return emailBlock(d,i);}).join("\n"):"None",
     "",
     "Generated from Blackburn Delivery Experience."
-  ].join("\\n");
+  ].join("\n");
   const emailSubject="Blackburn Service Follow-Up — "+monthLabel(reportMonth)+(reportSalesperson!=="ALL"?" — "+reportSalesperson:"");
   const serviceMailto="mailto:"+serviceEmailRecipients.join(",")+"?subject="+encodeURIComponent(emailSubject)+"&body="+encodeURIComponent(emailBody);
 
   main.innerHTML='<button class="btn" id="backReport">← Deliveries</button>'+
-    '<div class="hero" style="margin-top:20px"><div><div class="eyebrow">'+(ownOnly?"My performance":"Management")+'</div><h1>Delivery Report</h1></div><div class="small">Monthly report includes Estimated, Booked or Completed activity</div></div>'+
+    '<div class="hero" style="margin-top:20px"><div><div class="eyebrow">'+(ownOnly?"My performance":"Management")+'</div><h1>Delivery Report</h1></div><div class="small">Completed deliveries only • Service follow-up audit</div></div>'+
     '<div class="report-filters">'+
       '<div class="field"><label>Month</label><select id="reportMonth">'+monthOptions+'</select></div>'+
       (!ownOnly?'<div class="field"><label>Salesperson</label><select id="reportSalesperson">'+personOptions+'</select></div>':'<div class="field"><label>Salesperson</label><input value="'+esc(profile.full_name)+'" disabled></div>')+
@@ -1365,7 +1390,7 @@ async function renderReports(ownOnly){
     '<div class="tiles" style="margin-bottom:18px"><div class="tile"><div class="tile-title">Covered</div><div class="tile-count">'+covered+'</div><div class="tile-meta">Unique deals booked and/or completed in '+esc(monthLabel(reportMonth))+'</div></div><div class="tile"><div class="tile-title">Delivery Booked</div><div class="tile-count">'+booked+'</div><div class="tile-meta">'+bookingPct+'% of Covered</div></div><div class="tile"><div class="tile-title">Completed Deliveries</div><div class="tile-count">'+completed+'</div><div class="tile-meta">'+completedPct+'% of Covered</div></div><div class="tile"><div class="tile-title">Process Gap</div><div class="tile-count">'+processGap+'</div><div class="tile-meta">Past delivery date • process incomplete</div></div></div>'+
     '<div class="report-subtiles"><div class="report-subtile"><div class="eyebrow">Retail Service</div><strong>'+outcomeCounts.booked+'</strong><div class="small">Service Booked · '+(retailCovered?Math.round(outcomeCounts.booked/retailCovered*100):0)+'%</div></div><div class="report-subtile"><div class="eyebrow">Retail Service</div><strong>'+outcomeCounts.intro_follow+'</strong><div class="small">In-Person Intro / Booking to Follow · '+(retailCovered?Math.round(outcomeCounts.intro_follow/retailCovered*100):0)+'%</div></div><div class="report-subtile"><div class="eyebrow">Retail Service</div><strong>'+outcomeCounts.push+'</strong><div class="small">Push to Service · '+(retailCovered?Math.round(outcomeCounts.push/retailCovered*100):0)+'%</div></div><div class="report-subtile"><div class="eyebrow">Fleet</div><strong>'+outcomeCounts.fleet+'</strong><div class="small">Fleet Introduction · excluded from retail Service %</div></div></div>'+
     '<div class="panel" style="margin-bottom:18px"><div style="display:flex;justify-content:space-between;align-items:flex-end;gap:12px;flex-wrap:wrap"><div><div class="eyebrow">6 month trend</div><h2 style="margin-top:5px">Coverage & Service Outcomes</h2></div><div class="small">Top bar = delivery booked ÷ monthly cohort • lower bar = retail Service outcomes (KF Fleet excluded)</div></div><div class="report-chart" style="margin-top:20px">'+chartHtml+'</div><div class="chart-legend"><span><i class="legend-dot chart-booked"></i>Booked / Service Booked</span><span><i class="legend-dot chart-intro"></i>In-Person Intro / Booking to Follow</span><span><i class="legend-dot chart-push"></i>Push to Service</span></div></div>'+
-    '<div class="panel table-wrap"><h2 style="margin-bottom:4px">Delivery Activity</h2><div class="small" style="margin-bottom:14px">Delivery dates and Service dates are deliberately separated below. “Service Appointment” is the actual first-service date/time entered during Step 3.</div><table><thead><tr><th>Est. Delivery</th><th>Delivery Booked For</th><th>Delivery Completed</th><th>Customer</th><th>Vehicle</th><th>Rego</th><th>Stock #</th><th>Deal #</th><th>Salesperson</th><th>Delivery Status</th><th>Steps</th><th>Step 3 Method</th><th>Service Advisor</th><th>Service Appointment</th><th>First Step Started</th><th>Process Completed</th><th>Total Process Time</th><th>Step 3 Sent</th><th>Step 3 Actioned</th><th>Step 3 Response</th></tr></thead><tbody>'+(body||'<tr><td colspan="20">No delivery activity for this filter.</td></tr>')+'</tbody></table></div>';
+    '<div class="panel table-wrap"><h2 style="margin-bottom:4px">Completed Delivery Activity</h2><div class="small" style="margin-bottom:14px">Only completed deliveries are shown here. Service Appointment is the actual first-service date/time entered during Step 3.</div><table><thead><tr><th>Service Appointment</th><th>Delivery Completed</th><th>Customer</th><th>Vehicle</th><th>Rego</th><th>Stock #</th><th>Deal #</th><th>Salesperson</th><th>Delivery Status</th><th>Steps</th><th>Step 3 Method</th><th>Service Advisor</th><th>First Step Started</th><th>Process Completed</th><th>Total Process Time</th><th>Step 3 Sent</th><th>Step 3 Actioned</th><th>Step 3 Response</th></tr></thead><tbody>'+(body||'<tr><td colspan="18">No completed deliveries for this filter.</td></tr>')+'</tbody></table></div>';
 
   document.getElementById("backReport").addEventListener("click",function(){document.body.classList.remove("reports-wide");currentView="home";renderHome();});
   document.getElementById("reportMonth").addEventListener("change",function(e){reportMonth=e.target.value;renderReports(ownOnly);});
@@ -1403,16 +1428,38 @@ function startSilentPolling(){
     if(document.hidden)return;
     const activeId=activeDelivery&&activeDelivery.id;
     const scrollY=window.scrollY;
+    const before=deliveryUiSignature();
+
     await syncFromTim("",homeMode==="today"?null:"outstanding");
     await loadDeliveries();
-    if(activeId){await refreshActive(true);}else if(document.getElementById("main")){await renderCurrentView();requestAnimationFrame(function(){window.scrollTo(0,scrollY);});}
+
+    const changed=before!==deliveryUiSignature();
+
+    if(activeId){
+      await refreshActive(true);
+    }else if(currentView!=="reports"&&changed&&document.getElementById("main")){
+      await renderCurrentView();
+      requestAnimationFrame(function(){window.scrollTo(0,scrollY);});
+    }
   },45000);
 }
 
 document.addEventListener("visibilitychange",async function(){
   if(!document.hidden&&sb&&profile&&profile.role!=="service"){
-    const scrollY=window.scrollY;await syncFromTim("",homeMode==="today"?null:"outstanding");await loadDeliveries();
-    if(activeDelivery)await refreshActive(true);else if(document.getElementById("main")){await renderCurrentView();requestAnimationFrame(function(){window.scrollTo(0,scrollY);});}
+    const scrollY=window.scrollY;
+    const before=deliveryUiSignature();
+
+    await syncFromTim("",homeMode==="today"?null:"outstanding");
+    await loadDeliveries();
+
+    const changed=before!==deliveryUiSignature();
+
+    if(activeDelivery){
+      await refreshActive(true);
+    }else if(currentView!=="reports"&&changed&&document.getElementById("main")){
+      await renderCurrentView();
+      requestAnimationFrame(function(){window.scrollTo(0,scrollY);});
+    }
   }
 });
 
