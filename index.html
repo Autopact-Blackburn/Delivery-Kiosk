@@ -459,6 +459,41 @@ function fatal(message){
   app.innerHTML='<div class="login-wrap"><div class="login-card"><div class="logo">B</div><h1 style="font-size:34px">Unable to start.</h1><p>'+esc(message)+'</p></div></div>';
 }
 
+async function tryAxisLaunch(){
+  const params=new URLSearchParams(window.location.search);
+  const token=params.get("axis_token")||params.get("launch_token")||params.get("token");
+  if(!token)return false;
+
+  try{
+    const res=await sb.functions.invoke("axis-launch",{body:{token:token}});
+    if(res.error)throw res.error;
+    if(!res.data||res.data.ok===false)throw new Error((res.data&&res.data.error)||"Unable to open Delivery through AXIS.");
+
+    const tokenHash=res.data.token_hash;
+    const verifyType=res.data.verify_type||"email";
+    if(!tokenHash)throw new Error("Delivery session token was not returned.");
+
+    const verified=await sb.auth.verifyOtp({token_hash:tokenHash,type:verifyType});
+    if(verified.error)throw verified.error;
+    if(!verified.data||!verified.data.user)throw new Error("Delivery session could not be established.");
+
+    currentUser=verified.data.user;
+    localStorage.setItem(TRUST_KEY,String(Date.now()));
+    await loadProfile();
+
+    params.delete("axis_token");
+    params.delete("launch_token");
+    params.delete("token");
+    const clean=window.location.pathname+(params.toString()?"?"+params.toString():"")+window.location.hash;
+    window.history.replaceState({},"",clean);
+
+    return true;
+  }catch(err){
+    console.warn("AXIS Delivery launch unavailable:",err);
+    return false;
+  }
+}
+
 async function init(){
   if(!window.supabase || !window.supabase.createClient){
     fatal("Supabase library did not load. Check internet access and refresh.");
@@ -471,8 +506,16 @@ async function init(){
   const params=new URLSearchParams(window.location.search);
   const serviceToken=params.get("service");
 
-  const sessionResult=await sb.auth.getSession();
-  const session=sessionResult.data && sessionResult.data.session ? sessionResult.data.session : null;
+  const axisOpened=await tryAxisLaunch();
+
+  let session=null;
+  if(axisOpened){
+    const sessionResult=await sb.auth.getSession();
+    session=sessionResult.data && sessionResult.data.session ? sessionResult.data.session : null;
+  }else{
+    const sessionResult=await sb.auth.getSession();
+    session=sessionResult.data && sessionResult.data.session ? sessionResult.data.session : null;
+  }
 
   if(!session){
     renderLogin(serviceToken);
