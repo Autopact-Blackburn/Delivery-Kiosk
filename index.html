@@ -176,6 +176,13 @@ input:focus,select:focus,textarea:focus{border-color:#aa9cff;box-shadow:0 0 0 4p
 .report-actions{display:flex;justify-content:flex-end;gap:10px;flex-wrap:wrap;margin:-4px 0 18px}
 .status.fleet_intro{background:#eee9ff;color:#5230a8}
 .fleet-note{margin-top:10px;padding:10px 12px;border-radius:12px;background:#f4f0ff;color:#4d3d75;font-size:12px;line-height:1.45}
+.customer-actions{display:flex;align-items:center;justify-content:flex-end;gap:9px;flex-wrap:wrap;min-width:190px}
+.service-choice{grid-template-columns:repeat(auto-fit,minmax(145px,1fr));align-items:stretch}
+.service-choice .btn{height:100%;min-height:48px}
+.status.service-unbooked{background:#fee7e7;color:#b42318}
+@media(max-width:560px){
+  .customer-actions{width:100%;min-width:0;justify-content:flex-start}
+}
 
 </style>
 </head>
@@ -777,7 +784,7 @@ function renderHome(){
   if(rows.length){
     rows.forEach(function(d){
       const ds=displayStatus(d);
-      customerHtml+='<div class="customer-card"><div><div class="customer-name">'+esc(d.customer_first_name)+' '+esc(d.customer_last_name)+'</div><div class="customer-meta">'+esc(d.vehicle_make||"")+' '+esc(d.vehicle_model||"")+(d.rego?' • Rego '+esc(d.rego):'')+(d.stock_number?' • Stock '+esc(d.stock_number):'')+(d.deal_number?' • Deal '+esc(d.deal_number):'')+'</div><div class="next-action">'+esc(nextActionText(d))+'</div>'+(isManagement()?'<div class="customer-meta">'+esc(d.assigned_salesperson_name||"Unassigned")+'</div>':'')+'</div><div style="display:flex;align-items:center;gap:9px;flex-wrap:wrap">'+(needsAttention(d)&&ds.key!=="needs_action"&&ds.key!=="overdue"?'<span class="attention">● Needs attention</span>':'')+'<span class="status '+esc(ds.key)+'">'+esc(ds.label)+'</span><button class="btn primary open-delivery" data-id="'+esc(d.id)+'">'+(d.status==="completed"?"VIEW":"OPEN")+' →</button></div></div>';
+      customerHtml+='<div class="customer-card"><div><div class="customer-name">'+esc(d.customer_first_name)+' '+esc(d.customer_last_name)+'</div><div class="customer-meta">'+esc(d.vehicle_make||"")+' '+esc(d.vehicle_model||"")+(d.rego?' • Rego '+esc(d.rego):'')+(d.stock_number?' • Stock '+esc(d.stock_number):'')+(d.deal_number?' • Deal '+esc(d.deal_number):'')+'</div><div class="next-action">'+esc(nextActionText(d))+'</div>'+(isManagement()?'<div class="customer-meta">'+esc(d.assigned_salesperson_name||"Unassigned")+'</div>':'')+'</div><div class="customer-actions">'+(needsAttention(d)&&ds.key!=="needs_action"&&ds.key!=="overdue"?'<span class="attention">● Needs attention</span>':'')+'<span class="status '+esc(ds.key)+'">'+esc(ds.label)+'</span><button class="btn primary open-delivery" data-id="'+esc(d.id)+'">'+(d.status==="completed"?"VIEW":"OPEN")+' →</button></div></div>';
     });
   }else customerHtml='<div class="empty" style="grid-column:1/-1">'+(searchText?"No matching deliveries found.":homeMode==="remaining"?"No deliveries remaining this month.":homeMode==="overdue"?"No overdue deliveries. Nice work.":"No deliveries in this view.")+'</div>';
 
@@ -932,7 +939,7 @@ function showFleetIntroduction(){
   const bg=document.createElement("div");
   bg.className="modal-bg";
   bg.id="fleetIntroModal";
-  bg.innerHTML='<div class="modal"><div class="eyebrow">KF Fleet Deal</div><h2>Fleet Introduction</h2><p>This customer will not be booked into Blackburn Service through the normal handoff. Enter the reason before completing Step 3.</p><div class="field"><label>Reason / fleet consultant comment — required</label><textarea id="fleetIntroComment" placeholder="e.g. Interstate customer — servicing will be managed through their local dealer."></textarea></div><div class="modal-actions"><button class="btn" id="cancelFleetIntro">Cancel</button><button class="btn primary" id="saveFleetIntro">COMPLETE FLEET INTRODUCTION →</button></div></div>';
+  bg.innerHTML='<div class="modal"><div class="eyebrow">KF Fleet Deal</div><h2>Fleet Introduction</h2><p>This customer will not be booked into Blackburn Service through the normal handoff. Enter the reason, save it, then continue the remaining delivery steps.</p><div class="field"><label>Reason / fleet consultant comment — required</label><textarea id="fleetIntroComment" placeholder="e.g. Interstate customer — servicing will be managed through their local dealer."></textarea></div><div class="modal-actions"><button class="btn" id="cancelFleetIntro">Cancel</button><button class="btn primary" id="saveFleetIntro">COMPLETE FLEET INTRODUCTION →</button></div></div>';
   document.body.appendChild(bg);
   document.getElementById("cancelFleetIntro").onclick=function(){bg.remove();};
   document.getElementById("saveFleetIntro").onclick=completeFleetIntroduction;
@@ -940,11 +947,28 @@ function showFleetIntroduction(){
 async function completeFleetIntroduction(){
   const comment=String(document.getElementById("fleetIntroComment").value||"").trim();
   if(!comment){toast("A comment is required to complete Fleet Introduction.");return;}
-  const res=await sb.rpc("complete_delivery_step",{p_session_id:activeSession.id,p_step_number:3,p_notes:"[Fleet Introduction] "+comment});
-  if(res.error){toast(res.error.message);return;}
-  const modal=document.getElementById("fleetIntroModal");if(modal)modal.remove();
-  toast("Fleet Introduction recorded");
-  await refreshActive(true);
+
+  const saveBtn=document.getElementById("saveFleetIntro");
+  if(saveBtn){saveBtn.disabled=true;saveBtn.textContent="SAVING…";}
+
+  const res=await sb.rpc("complete_delivery_step",{
+    p_session_id:activeSession.id,
+    p_step_number:3,
+    p_notes:"[Fleet Introduction] "+comment
+  });
+
+  if(res.error){
+    if(saveBtn){saveBtn.disabled=false;saveBtn.textContent="COMPLETE FLEET INTRODUCTION →";}
+    toast(res.error.message);
+    return;
+  }
+
+  const modal=document.getElementById("fleetIntroModal");
+  if(modal)modal.remove();
+
+  await refreshActive(false);
+  renderDelivery();
+  toast("Fleet Introduction saved • Step 3 complete");
 }
 
 async function pushToService(){
@@ -1319,7 +1343,22 @@ async function renderReports(ownOnly){
   }
   let body="";
   rows.slice().sort(function(a,b){
-    const ua=reportUrgency(a),ub=reportUrgency(b);if(ua!==ub)return ua-ub;
+    const aUnbooked=!serviceAppointmentAt(a);
+    const bUnbooked=!serviceAppointmentAt(b);
+    if(aUnbooked!==bUnbooked)return aUnbooked?-1:1;
+
+    const aa=serviceAppointmentAt(a),ba=serviceAppointmentAt(b);
+    if(aa&&ba){
+      const diff=new Date(aa)-new Date(ba);
+      if(diff!==0)return diff;
+    }
+
+    const ac=completionAt(a),bc=completionAt(b);
+    if(ac&&bc){
+      const diff=new Date(ac)-new Date(bc);
+      if(diff!==0)return diff;
+    }
+
     return stableDeliverySort(a,b);
   }).forEach(function(d){
     const a=auditFor(d)||{};
@@ -1333,7 +1372,7 @@ async function renderReports(ownOnly){
     const method=step3MethodFor(d);
 
     body+='<tr>'+
-      '<td>'+esc(serviceAppointment?fmtDateTime(serviceAppointment):"UNBOOKED")+'</td>'+
+      '<td>'+(serviceAppointment?esc(fmtDateTime(serviceAppointment)):'<span class="status service-unbooked">UNBOOKED • ACTION</span>')+'</td>'+
       '<td>'+esc(doneAt?fmtDateTime(doneAt):"—")+'</td>'+
       '<td>'+esc(d.customer_first_name)+' '+esc(d.customer_last_name)+'</td>'+
       '<td>'+esc(vehicle)+'</td>'+
@@ -1433,7 +1472,7 @@ async function renderReports(ownOnly){
     '<div class="tiles" style="margin-bottom:18px"><div class="tile"><div class="tile-title">Covered</div><div class="tile-count">'+covered+'</div><div class="tile-meta">Unique deals booked and/or completed in '+esc(monthLabel(reportMonth))+'</div></div><div class="tile"><div class="tile-title">Delivery Booked</div><div class="tile-count">'+booked+'</div><div class="tile-meta">'+bookingPct+'% of Covered</div></div><div class="tile"><div class="tile-title">Completed Deliveries</div><div class="tile-count">'+completed+'</div><div class="tile-meta">'+completedPct+'% of Covered</div></div><div class="tile"><div class="tile-title">Process Gap</div><div class="tile-count">'+processGap+'</div><div class="tile-meta">Past delivery date • process incomplete</div></div></div>'+
     '<div class="report-subtiles"><div class="report-subtile"><div class="eyebrow">Retail Service</div><strong>'+outcomeCounts.booked+'</strong><div class="small">Service Booked · '+(retailCovered?Math.round(outcomeCounts.booked/retailCovered*100):0)+'%</div></div><div class="report-subtile"><div class="eyebrow">Retail Service</div><strong>'+outcomeCounts.intro_follow+'</strong><div class="small">In-Person Intro / Booking to Follow · '+(retailCovered?Math.round(outcomeCounts.intro_follow/retailCovered*100):0)+'%</div></div><div class="report-subtile"><div class="eyebrow">Retail Service</div><strong>'+outcomeCounts.push+'</strong><div class="small">Push to Service · '+(retailCovered?Math.round(outcomeCounts.push/retailCovered*100):0)+'%</div></div><div class="report-subtile"><div class="eyebrow">Fleet</div><strong>'+outcomeCounts.fleet+'</strong><div class="small">Fleet Introduction · excluded from retail Service %</div></div></div>'+
     '<div class="panel" style="margin-bottom:18px"><div style="display:flex;justify-content:space-between;align-items:flex-end;gap:12px;flex-wrap:wrap"><div><div class="eyebrow">6 month trend</div><h2 style="margin-top:5px">Coverage & Service Outcomes</h2></div><div class="small">Top bar = delivery booked ÷ monthly cohort • lower bar = retail Service outcomes (KF Fleet excluded)</div></div><div class="report-chart" style="margin-top:20px">'+chartHtml+'</div><div class="chart-legend"><span><i class="legend-dot chart-booked"></i>Booked / Service Booked</span><span><i class="legend-dot chart-intro"></i>In-Person Intro / Booking to Follow</span><span><i class="legend-dot chart-push"></i>Push to Service</span></div></div>'+
-    '<div class="panel table-wrap"><h2 style="margin-bottom:4px">Completed Delivery Activity</h2><div class="small" style="margin-bottom:14px">Only completed deliveries are shown here. Service Appointment is the actual first-service date/time entered during Step 3.</div><table><thead><tr><th>Service Appointment</th><th>Delivery Completed</th><th>Customer</th><th>Vehicle</th><th>Rego</th><th>Stock #</th><th>Deal #</th><th>Salesperson</th><th>Delivery Status</th><th>Steps</th><th>Step 3 Method</th><th>Service Advisor</th><th>First Step Started</th><th>Process Completed</th><th>Total Process Time</th><th>Step 3 Sent</th><th>Step 3 Actioned</th><th>Step 3 Response</th></tr></thead><tbody>'+(body||'<tr><td colspan="18">No completed deliveries for this filter.</td></tr>')+'</tbody></table></div>';
+    '<div class="panel table-wrap"><h2 style="margin-bottom:4px">Completed Delivery Activity</h2><div class="small" style="margin-bottom:14px">Only completed deliveries are shown here. Red UNBOOKED rows are action items and appear first. Service Appointment is the actual first-service date/time entered during Step 3.</div><table><thead><tr><th>Service Appointment</th><th>Delivery Completed</th><th>Customer</th><th>Vehicle</th><th>Rego</th><th>Stock #</th><th>Deal #</th><th>Salesperson</th><th>Delivery Status</th><th>Steps</th><th>Step 3 Method</th><th>Service Advisor</th><th>First Step Started</th><th>Process Completed</th><th>Total Process Time</th><th>Step 3 Sent</th><th>Step 3 Actioned</th><th>Step 3 Response</th></tr></thead><tbody>'+(body||'<tr><td colspan="18">No completed deliveries for this filter.</td></tr>')+'</tbody></table></div>';
 
   document.getElementById("backReport").addEventListener("click",function(){document.body.classList.remove("reports-wide");currentView="home";renderHome();});
   document.getElementById("reportMonth").addEventListener("change",function(e){reportMonth=e.target.value;renderReports(ownOnly);});
